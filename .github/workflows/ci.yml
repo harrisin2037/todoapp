@@ -1,0 +1,62 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      matrix:
+        go-version: [1.21, 1.22]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go-version }}
+
+    - name: Build backend
+      run: |
+        cd backend
+        go mod download
+        go build -v ./...
+
+    - name: Test backend
+      run: |
+        cd backend
+        go test -v ./...
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: 20
+
+    - name: Build frontend
+      run: |
+        cd frontend
+        npm install
+        npm run build
+
+    - name: Test frontend
+      run: |
+        cd frontend
+        npm test
+
+    - name: Build and push Docker images
+      run: |
+        echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+        docker build -t todoapp-backend:latest -f backend/Dockerfile ./backend
+        docker tag todoapp-backend:latest harrisin2037/todoapp-backend:latest
+        docker push harrisin2037/todoapp-backend:latest
+        docker build -t todoapp-frontend:latest -f frontend/Dockerfile ./frontend
+        docker tag todoapp-frontend:latest harrisin2037/todoapp-frontend:latest
+        docker push harrisin2037/todoapp-frontend:latest
