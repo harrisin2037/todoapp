@@ -69,7 +69,7 @@ func (s *UserService) Login(username, password string) (*models.User, string, er
 	return user, token, nil
 }
 
-func (s *UserService) ChangeRole(userID uint, newRole models.Role) error {
+func (s *UserService) ChangeRole(userID int64, newRole models.Role) error {
 	user, err := s.repo.FindByID(userID)
 	if err != nil {
 		return ErrUserNotFound
@@ -80,4 +80,79 @@ func (s *UserService) ChangeRole(userID uint, newRole models.Role) error {
 	}
 
 	return s.repo.UpdateRole(userID, newRole)
+}
+
+func (s *UserService) GetUserByID(userID int64) (*models.User, error) {
+	user, err := s.repo.FindByID(userID)
+	if err != nil {
+		return nil, ErrUserNotFound
+	}
+
+	return user, nil
+}
+
+func (s *UserService) GetAllUsers() ([]models.User, error) {
+	users, err := s.repo.FindAll()
+	if err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
+func (s *UserService) UpdateUser(userID int64, username, email, password string) error {
+	user, err := s.repo.FindByID(userID)
+	if err != nil {
+		return ErrUserNotFound
+	}
+
+	if username != "" {
+		user.Username = username
+	}
+
+	if email != "" {
+		user.Email = email
+	}
+
+	if password != "" {
+		err = user.SetPassword(password)
+		if err != nil {
+			return err
+		}
+	}
+
+	return s.repo.Update(userID, username, email, password)
+}
+
+func (s *UserService) DeleteUser(userID int64) error {
+	_, err := s.repo.FindByID(userID)
+	if err != nil {
+		return ErrUserNotFound
+	}
+
+	return s.repo.Delete(userID)
+}
+
+func (s *UserService) CreateUser(username, email, password string, role models.Role) error {
+	existingUser, _ := s.repo.FindByUsername(username)
+	if existingUser != nil {
+		return ErrUserAlreadyExists
+	}
+
+	existingUser, _ = s.repo.FindByEmail(email)
+	if existingUser != nil {
+		return ErrEmailAlreadyExists
+	}
+
+	newUser := &models.User{
+		Username: username,
+		Email:    email,
+		Role:     role,
+	}
+	err := newUser.SetPassword(password)
+	if err != nil {
+		return err
+	}
+
+	return s.repo.Create(newUser)
 }

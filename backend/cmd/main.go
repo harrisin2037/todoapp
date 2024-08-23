@@ -100,6 +100,9 @@ func main() {
 	adminRouter.Use(middlewares.AuthMiddleware(), middlewares.AdminMiddleware())
 	{
 		adminRouter.PUT("/role", userHandler.ChangeRole)
+		adminRouter.PUT("/users/:id", userHandler.GetUser)
+		adminRouter.GET("/users", userHandler.GetAllUsers)
+		adminRouter.POST("/users", userHandler.CreateUser)
 	}
 
 	port := os.Getenv("PORT")

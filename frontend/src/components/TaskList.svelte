@@ -3,15 +3,54 @@
   import { API_BASE_URL } from "../config";
 
   export let todos;
-  export let fetchTodos;
 
   let newTodo = { name: "", description: "", due_date: "" };
   let showModal = false;
   let showPending = true;
   let showCompleted = false;
+  let searchQuery = "";
+  let filterStatus = "all";
+  let sortBy = "due_date";
+  let sortOrder = "asc";
 
-  $: pendingTodos = todos.filter((todo) => todo.status !== "completed");
-  $: completedTodos = todos.filter((todo) => todo.status === "completed");
+  $: filteredTodos = todos
+    .filter((todo) => {
+      const matchesSearch = todo.name
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      const matchesFilter =
+        filterStatus === "all" || todo.status === filterStatus;
+      return matchesSearch && matchesFilter;
+    })
+    .sort((a, b) => {
+      const factor = sortOrder === "asc" ? 1 : -1;
+      if (sortBy === "name") {
+        return factor * a.name.localeCompare(b.name);
+      } else if (sortBy === "due_date") {
+        return factor * (new Date(a.due_date) - new Date(b.due_date));
+      }
+      return 0;
+    });
+
+  $: pendingTodos = filteredTodos.filter((todo) => todo.status !== "completed");
+  $: completedTodos = filteredTodos.filter(
+    (todo) => todo.status === "completed"
+  );
+
+  async function fetchTodos() {
+    const response = await fetch(`${API_BASE_URL}/todos`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+
+    if (response.ok) {
+      todos = await response.json();
+    } else {
+      const errorData = await response.json();
+      alert(`Error: ${errorData.error}`);
+    }
+  }
 
   async function addTodo() {
     const response = await fetch(`${API_BASE_URL}/todos`, {
@@ -43,12 +82,6 @@
   function toggleCompleted() {
     showCompleted = !showCompleted;
   }
-
-  function handleKeyDown(event) {
-    if (event.key === "Escape") {
-      toggleModal();
-    }
-  }
 </script>
 
 <div class="task-list">
@@ -56,6 +89,30 @@
     <h2>Tasks</h2>
     <button class="add-btn" on:click={toggleModal}>
       <span class="plus-icon">+</span> Add Task
+    </button>
+  </div>
+
+  <div class="search-filter-sort">
+    <input
+      type="text"
+      bind:value={searchQuery}
+      placeholder="Search tasks..."
+      class="search-input"
+    />
+    <select bind:value={filterStatus} class="filter-select">
+      <option value="all">All</option>
+      <option value="pending">Pending</option>
+      <option value="completed">Completed</option>
+    </select>
+    <select bind:value={sortBy} class="sort-select">
+      <option value="due_date">Due Date</option>
+      <option value="name">Name</option>
+    </select>
+    <button
+      class="sort-order-btn"
+      on:click={() => (sortOrder = sortOrder === "asc" ? "desc" : "asc")}
+    >
+      {sortOrder === "asc" ? "▲" : "▼"}
     </button>
   </div>
 
@@ -166,6 +223,35 @@
     font-size: 1.2rem;
   }
 
+  .search-filter-sort {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 1rem;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e8ecee;
+  }
+
+  .search-input,
+  .filter-select,
+  .sort-select {
+    flex: 1;
+    min-width: 120px;
+    padding: 0.5rem;
+    border: 1px solid #e8ecee;
+    border-radius: 4px;
+    font-size: 1rem;
+  }
+
+  .sort-order-btn {
+    padding: 0.5rem 1rem;
+    background-color: #e8ecee;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+
   .task-list-content {
     flex-grow: 1;
     overflow-y: auto;
@@ -251,18 +337,6 @@
     color: #7b68ee;
   }
 
-  .expand-icon {
-    font-size: 0.8rem;
-    color: #7b68ee;
-  }
-
-  .task-list-content h3 {
-    margin-top: 1rem;
-    margin-bottom: 0.5rem;
-    color: #2c3e50;
-    font-size: 1.1rem;
-  }
-
   .tasks-header {
     display: flex;
     justify-content: space-between;
@@ -281,20 +355,8 @@
     color: #2c3e50;
   }
 
-  .expand-icon {
-    font-size: 0.8rem;
-    color: #7b68ee;
-  }
-
   .tasks-list {
     margin-top: 0.5rem;
-  }
-
-  .task-list-content h3 {
-    margin-top: 1rem;
-    margin-bottom: 0.5rem;
-    color: #2c3e50;
-    font-size: 1.1rem;
   }
 
   .limited-size {
@@ -302,5 +364,18 @@
     max-height: 200px;
     width: 100%;
     box-sizing: border-box;
+  }
+
+  @media (max-width: 600px) {
+    .search-filter-sort {
+      flex-direction: column;
+    }
+
+    .search-input,
+    .filter-select,
+    .sort-select,
+    .sort-order-btn {
+      width: 100%;
+    }
   }
 </style>

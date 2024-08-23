@@ -7,6 +7,7 @@
   import Notification from "./components/Notification.svelte";
   import MobileNav from "./components/MobileNav.svelte";
   import Auth from "./components/Auth.svelte";
+  import UserManagement from "./components/UserManagement.svelte";
   import { API_BASE_URL } from "./config";
 
   let isMobile;
@@ -15,6 +16,7 @@
   let pollingInterval;
   let isAuthenticated = false;
   let isLoading = true;
+  let isAdmin = false;
 
   onMount(async () => {
     checkMobile();
@@ -37,7 +39,29 @@
     isAuthenticated = !!token;
     if (isAuthenticated) {
       await fetchTodos();
+      await checkAdminStatus();
       startPolling();
+    }
+  }
+
+  async function checkAdminStatus() {
+    const token = localStorage.getItem("token");
+    try {
+      // TODO: need to change to an API to check user role
+      const response = await fetch(`${API_BASE_URL}/admin/users`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const userData = await response.json();
+        isAdmin = true;
+      } else {
+        isAdmin = false;
+      }
+    } catch (error) {
+      console.error("Error checking admin status:", error);
+      isAdmin = false;
     }
   }
 
@@ -69,11 +93,13 @@
   async function handleLogin() {
     isAuthenticated = true;
     await fetchTodos();
+    await checkAdminStatus();
     startPolling();
   }
 
   function handleLogout() {
     isAuthenticated = false;
+    isAdmin = false;
     localStorage.removeItem("token");
     clearInterval(pollingInterval);
     todos = [];
@@ -87,7 +113,7 @@
     <div class="loading">Loading...</div>
   {:else if isAuthenticated}
     {#if !isMobile}
-      <Sidebar {setActiveView} {activeView} />
+      <Sidebar {setActiveView} {activeView} {isAdmin} />
     {/if}
 
     <div class="content">
@@ -97,13 +123,15 @@
         <TaskList {todos} {fetchTodos} />
       {:else if activeView === "calendar"}
         <Calendar {todos} />
+      {:else if activeView === "users" && isAdmin}
+        <UserManagement />
       {/if}
 
       <Notification />
     </div>
 
     {#if isMobile}
-      <MobileNav {setActiveView} {activeView} />
+      <MobileNav {setActiveView} {activeView} {isAdmin} />
     {/if}
   {:else}
     <div class="auth-wrapper">
@@ -167,5 +195,32 @@
 
   .desktop .auth-wrapper {
     grid-column: 1 / -1;
+  }
+
+  .loading {
+    font-size: 24px;
+    font-weight: bold;
+    color: #d8c2be;
+    animation: loadingAnimation 1.5s infinite;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+
+  @keyframes loadingAnimation {
+    0% {
+      opacity: 1;
+      color: #ff6347;
+    }
+    50% {
+      opacity: 0.5;
+      color: #4682b4;
+    }
+    100% {
+      opacity: 1;
+      color: #ff6347;
+    }
   }
 </style>

@@ -3,6 +3,7 @@
 
   export let setActiveView;
   export let activeView;
+  export let isAdmin;
 
   let isCollapsed = false;
   const dispatch = createEventDispatcher();
@@ -11,6 +12,14 @@
     isCollapsed = !isCollapsed;
     dispatch("toggle", { collapsed: isCollapsed });
   }
+
+  $: navItems = [
+    { id: "tasks", label: "Tasks", icon: "task_alt" },
+    { id: "calendar", label: "Calendar", icon: "calendar_today" },
+    ...(isAdmin
+      ? [{ id: "users", label: "User Management", icon: "people" }]
+      : []),
+  ];
 </script>
 
 <aside class:collapsed={isCollapsed}>
@@ -21,28 +30,19 @@
   </button>
   <nav>
     <ul>
-      <li>
-        <button
-          on:click={() => setActiveView("tasks")}
-          class:active={activeView === "tasks"}
-        >
-          <span class="material-icons">task_alt</span>
-          {#if !isCollapsed}
-            <span class="button-text">Tasks</span>
-          {/if}
-        </button>
-      </li>
-      <li>
-        <button
-          on:click={() => setActiveView("calendar")}
-          class:active={activeView === "calendar"}
-        >
-          <span class="material-icons">calendar_today</span>
-          {#if !isCollapsed}
-            <span class="button-text">Calendar</span>
-          {/if}
-        </button>
-      </li>
+      {#each navItems as item}
+        <li>
+          <button
+            on:click={() => setActiveView(item.id)}
+            class:active={activeView === item.id}
+          >
+            <span class="material-icons">{item.icon}</span>
+            {#if !isCollapsed}
+              <span class="button-text">{item.label}</span>
+            {/if}
+          </button>
+        </li>
+      {/each}
     </ul>
   </nav>
 </aside>

@@ -18,7 +18,7 @@
 <header>
   <div class="logo">
     <span class="material-icons">check_circle</span>
-    <h1>Todo App</h1>
+    <h1>Playbook</h1>
   </div>
   <button on:click={handleLogout} class="logout-button">
     <span class="material-icons">logout</span>
