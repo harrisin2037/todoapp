@@ -32,8 +32,7 @@
 </script>
 
 <nav class="nav-bar" class:narrow={isNarrow} bind:this={navBar}>
-  <!-- svelte-ignore a11y-click-events-have-key-events -->
-  <div class="logo" on:click={toggleNavbar}>
+  <div class="logo">
     <span class="material-icons">menu</span>
     {#if !isNarrow}
       <span class="app-name">Todo App</span>
@@ -53,6 +52,11 @@
       </button>
     {/each}
   </div>
+  <button class="collapse-btn" on:click={toggleNavbar}>
+    <span class="material-icons"
+      >{isNarrow ? "chevron_right" : "chevron_left"}</span
+    >
+  </button>
 </nav>
 
 <svelte:head>
@@ -67,7 +71,7 @@
     font-family: "Material Icons";
     font-weight: normal;
     font-style: normal;
-    font-size: 24px; /* Preferred icon size */
+    font-size: 24px;
     display: inline-block;
     line-height: 1;
     text-transform: none;
@@ -100,7 +104,6 @@
     display: flex;
     align-items: center;
     padding: 1rem;
-    cursor: pointer;
   }
 
   .logo .material-icons {
@@ -152,6 +155,20 @@
     font-size: 14px;
   }
 
+  .collapse-btn {
+    position: absolute;
+    bottom: 1rem;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    padding: 0.5rem;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    color: #7b68ee;
+  }
+
   @media (max-width: 768px) {
     .nav-bar {
       position: fixed;
@@ -188,6 +205,10 @@
 
     .button-text {
       font-size: 12px;
+    }
+
+    .collapse-btn {
+      display: none;
     }
   }
 

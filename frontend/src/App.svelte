@@ -87,7 +87,7 @@
     <div class="loading">Loading...</div>
   {:else if isAuthenticated}
     {#if !isMobile}
-      <Sidebar {setActiveView} />
+      <Sidebar {setActiveView} {activeView} />
     {/if}
 
     <div class="content">
@@ -103,7 +103,7 @@
     </div>
 
     {#if isMobile}
-      <MobileNav {setActiveView} />
+      <MobileNav {setActiveView} {activeView} />
     {/if}
   {:else}
     <div class="auth-wrapper">
@@ -138,7 +138,7 @@
 
   .desktop {
     display: grid;
-    grid-template-columns: 250px 1fr;
+    grid-template-columns: auto 1fr;
   }
 
   .loading {
@@ -159,19 +159,6 @@
     background-color: #fafbfc;
   }
 
-  .content {
-    flex-grow: 1;
-    overflow-y: auto;
-  }
-
-  .mobile .content {
-    padding-bottom: 60px;
-  }
-
-  .desktop {
-    display: grid;
-    grid-template-columns: 250px 1fr;
-  }
   .desktop.auth {
     display: flex;
     justify-content: center;
@@ -180,14 +167,5 @@
 
   .desktop .auth-wrapper {
     grid-column: 1 / -1;
-  }
-
-  .loading {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    font-size: 1.2em;
-    color: #333;
   }
 </style>

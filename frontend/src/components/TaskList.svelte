@@ -106,6 +106,7 @@
             bind:value={newTodo.description}
             placeholder="Description"
             rows="3"
+            class="limited-size"
           ></textarea>
           <input type="date" bind:value={newTodo.due_date} />
           <div class="form-actions">
@@ -294,5 +295,12 @@
     margin-bottom: 0.5rem;
     color: #2c3e50;
     font-size: 1.1rem;
+  }
+
+  .limited-size {
+    max-width: 100%;
+    max-height: 200px;
+    width: 100%;
+    box-sizing: border-box;
   }
 </style>
