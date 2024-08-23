@@ -17,18 +17,64 @@
   let isAuthenticated = false;
   let isLoading = true;
   let isAdmin = false;
+  let socket;
+  let onlineUsers = [];
 
   onMount(async () => {
     checkMobile();
     await checkAuth();
     window.addEventListener("resize", checkMobile);
     isLoading = false;
+
+    socket = new WebSocket(`${API_BASE_URL.replace("http", "ws")}/online`);
+
+    socket.addEventListener("open", () => {
+      console.log("WebSocket connection opened");
+      updateMyOnlineStatus();
+      whoAreOnline();
+      setInterval(updateMyOnlineStatus, 30000);
+    });
+
+    socket.addEventListener("message", (event) => {
+      const data = JSON.parse(event.data);
+      if (data.action === "onlineStatus") {
+        onlineUsers = data.onlineUsers;
+      }
+    });
+
+    socket.addEventListener("close", () => {
+      console.log("WebSocket connection closed");
+    });
+
+    socket.addEventListener("error", (error) => {
+      console.error("WebSocket error:", error);
+    });
   });
 
   onDestroy(() => {
     clearInterval(pollingInterval);
     window.removeEventListener("resize", checkMobile);
+    if (socket) {
+      socket.close();
+    }
   });
+
+  function updateMyOnlineStatus() {
+    socket.send(
+      JSON.stringify({
+        token: localStorage.getItem("token"),
+      })
+    );
+  }
+
+  function whoAreOnline() {
+    socket.send(
+      JSON.stringify({
+        token: localStorage.getItem("token"),
+        action: "who",
+      })
+    );
+  }
 
   function checkMobile() {
     isMobile = window.innerWidth < 768;
@@ -117,7 +163,7 @@
     {/if}
 
     <div class="content">
-      <Header on:logout={handleLogout} />
+      <Header on:logout={handleLogout} {onlineUsers} />
 
       {#if activeView === "tasks"}
         <TaskList {todos} {fetchTodos} />

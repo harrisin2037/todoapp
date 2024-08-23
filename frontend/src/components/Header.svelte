@@ -1,11 +1,36 @@
 <script>
   import { createEventDispatcher } from "svelte";
+  import { onMount } from "svelte";
+  import UserBubble from "./UserBubble.svelte";
+
+  export let onlineUsers = [];
+
+  let showPopup = false;
+
+  function togglePopup() {
+    showPopup = !showPopup;
+  }
+
+  function closePopup() {
+    showPopup = false;
+  }
 
   const dispatch = createEventDispatcher();
 
   function handleLogout() {
     dispatch("logout");
   }
+
+  onMount(() => {
+    document.addEventListener("click", (event) => {
+      if (
+        !event.target.closest(".popup") &&
+        !event.target.closest(".user-bubble")
+      ) {
+        closePopup();
+      }
+    });
+  });
 </script>
 
 <svelte:head>
@@ -19,6 +44,23 @@
   <div class="logo">
     <span class="material-icons">check_circle</span>
     <h1>Playbook</h1>
+    <div class="online-users">
+      {#each onlineUsers as user}
+        <UserBubble {user} on:click={togglePopup} />
+      {/each}
+    </div>
+    {#if showPopup}
+      <div class="popup">
+        <div class="popup-content">
+          <h3>Online Users</h3>
+          <ul>
+            {#each onlineUsers as user}
+              <li>{user}</li>
+            {/each}
+          </ul>
+        </div>
+      </div>
+    {/if}
   </div>
   <button on:click={handleLogout} class="logout-button">
     <span class="material-icons">logout</span>
@@ -35,6 +77,35 @@
     background-color: #ffffff;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     height: 60px;
+  }
+
+  .online-users {
+    display: flex;
+    align-items: center;
+  }
+  .popup {
+    position: absolute;
+    top: 50px;
+    right: 10px;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+  }
+  .popup-content {
+    padding: 10px;
+  }
+  .popup-content h3 {
+    margin-top: 0;
+  }
+  .popup-content ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .popup-content li {
+    padding: 5px 0;
   }
 
   .logo {

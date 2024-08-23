@@ -113,7 +113,7 @@
         <th>Username</th>
         <th>Email</th>
         <th>Role</th>
-        <th>Actions</th>
+        <th>Actions (need fix on the edit and delete)</th>
       </tr>
     </thead>
     <tbody>
