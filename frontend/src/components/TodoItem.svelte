@@ -104,7 +104,7 @@
         </span>
         <span class="status {todo.status}">
           <span class="material-icons">
-            {todo.status === "completed" ? "check_circle" : "pending"}
+            {todo.status === "completed" ? "check_circle" : "pending_actions"}
           </span>
           {todo.status}
         </span>
@@ -114,7 +114,50 @@
 </div>
 
 <style>
-  @import url("https://fonts.googleapis.com/icon?family=Material+Icons");
+  @font-face {
+    font-family: "Material Icons";
+    font-style: normal;
+    font-weight: 400;
+    src: url(https://fonts.gstatic.com/s/materialicons/v142/flUhRq6tzZclQEJ-Vdg-IuiaDsNcIhQ8tQ.woff2)
+      format("woff2");
+  }
+
+  .material-icons {
+    font-family: "Material Icons";
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    display: inline-block;
+    line-height: 1;
+    text-transform: none;
+    letter-spacing: normal;
+    word-wrap: normal;
+    white-space: nowrap;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "liga";
+  }
+
+  .nav-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #7b68ee;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    transition: background-color 0.3s;
+  }
+
+  .nav-button:hover {
+    background-color: #f0f0f0;
+  }
 
   .todo-item {
     display: flex;

@@ -7,6 +7,11 @@
 
   let newTodo = { name: "", description: "", due_date: "" };
   let showModal = false;
+  let showPending = true;
+  let showCompleted = false;
+
+  $: pendingTodos = todos.filter((todo) => todo.status !== "completed");
+  $: completedTodos = todos.filter((todo) => todo.status === "completed");
 
   async function addTodo() {
     const response = await fetch(`${API_BASE_URL}/todos`, {
@@ -31,6 +36,14 @@
     showModal = !showModal;
   }
 
+  function togglePending() {
+    showPending = !showPending;
+  }
+
+  function toggleCompleted() {
+    showCompleted = !showCompleted;
+  }
+
   function handleKeyDown(event) {
     if (event.key === "Escape") {
       toggleModal();
@@ -47,9 +60,33 @@
   </div>
 
   <div class="task-list-content">
-    {#each todos as todo (todo.ID)}
-      <TodoItem {todo} on:update={fetchTodos} on:delete={fetchTodos} />
-    {/each}
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <div class="tasks-header" on:click={togglePending}>
+      <h3>Pending Tasks ({pendingTodos.length})</h3>
+      <span class="expand-icon">{showPending ? "▼" : "▶"}</span>
+    </div>
+
+    {#if showPending}
+      <div class="tasks-list">
+        {#each pendingTodos as todo (todo.ID)}
+          <TodoItem {todo} on:update={fetchTodos} on:delete={fetchTodos} />
+        {/each}
+      </div>
+    {/if}
+
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <div class="tasks-header" on:click={toggleCompleted}>
+      <h3>Completed Tasks ({completedTodos.length})</h3>
+      <span class="expand-icon">{showCompleted ? "▼" : "▶"}</span>
+    </div>
+
+    {#if showCompleted}
+      <div class="tasks-list">
+        {#each completedTodos as todo (todo.ID)}
+          <TodoItem {todo} on:update={fetchTodos} on:delete={fetchTodos} />
+        {/each}
+      </div>
+    {/if}
   </div>
 
   {#if showModal}
@@ -206,5 +243,56 @@
 
   .submit-btn:hover {
     background-color: #6c5ce7;
+  }
+
+  .expand-icon {
+    font-size: 0.8rem;
+    color: #7b68ee;
+  }
+
+  .expand-icon {
+    font-size: 0.8rem;
+    color: #7b68ee;
+  }
+
+  .task-list-content h3 {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    color: #2c3e50;
+    font-size: 1.1rem;
+  }
+
+  .tasks-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #e8ecee;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    user-select: none;
+    margin-top: 1rem;
+  }
+
+  .tasks-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #2c3e50;
+  }
+
+  .expand-icon {
+    font-size: 0.8rem;
+    color: #7b68ee;
+  }
+
+  .tasks-list {
+    margin-top: 0.5rem;
+  }
+
+  .task-list-content h3 {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    color: #2c3e50;
+    font-size: 1.1rem;
   }
 </style>
