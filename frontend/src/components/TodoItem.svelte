@@ -1,5 +1,6 @@
 <script>
   import { createEventDispatcher } from "svelte";
+  import { API_BASE_URL } from "../config";
 
   export let todo;
   let isEditing = false;
@@ -14,86 +15,251 @@
 
   function cancelEdit() {
     isEditing = false;
-    editedTodo = { ...todo };
   }
 
-  function saveEdit() {
-    isEditing = false;
-    dispatch("update", editedTodo);
+  async function saveEdit() {
+    const response = await fetch(`${API_BASE_URL}/todos/${todo.ID}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify(editedTodo),
+    });
+    if (response.ok) {
+      isEditing = false;
+      dispatch("update");
+    } else {
+      const errorData = await response.json();
+      alert(`Error: ${errorData.error}`);
+    }
   }
 
-  function deleteTodo() {
-    dispatch("delete");
+  async function deleteTodo() {
+    const response = await fetch(`${API_BASE_URL}/todos/${todo.ID}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    if (response.ok) {
+      dispatch("delete");
+    } else {
+      const errorData = await response.json();
+      alert(`Error: ${errorData.error}`);
+    }
+  }
+
+  async function toggleStatus() {
+    editedTodo.status =
+      editedTodo.status === "completed" ? "pending" : "completed";
+    await saveEdit();
   }
 </script>
 
-<li>
-  {#if isEditing}
-    <div>
-      <input
-        type="text"
-        bind:value={editedTodo.name}
-        placeholder="Enter todo name"
-      />
-      <input
-        type="text"
+<div class="todo-item">
+  <div class="todo-checkbox">
+    <input
+      type="checkbox"
+      checked={todo.status === "completed"}
+      on:change={toggleStatus}
+    />
+  </div>
+  <div class="todo-content">
+    {#if isEditing}
+      <input type="text" bind:value={editedTodo.name} placeholder="Task name" />
+      <textarea
         bind:value={editedTodo.description}
-        placeholder="Enter todo description"
-      />
-      <input
-        type="date"
-        bind:value={editedTodo.due_date}
-        placeholder="Enter due date"
-      />
-      <select bind:value={editedTodo.status}>
-        <option value="pending">Pending</option>
-        <option value="completed">Completed</option>
-      </select>
-      <button class="save-btn" on:click={saveEdit}>Save</button>
-      <button class="cancel-btn" on:click={cancelEdit}>Cancel</button>
-    </div>
-  {:else}
-    <div>
-      <p>{todo.name}</p>
-      <p>{todo.description}</p>
-      <p>{todo.due_date}</p>
-      <p>{todo.status}</p>
-      <button class="edit-btn" on:click={startEditing}>Edit</button>
-      <button class="delete-btn" on:click={() => dispatch("delete")}
-        >Delete</button
-      >
-    </div>
-  {/if}
-</li>
+        placeholder="Description"
+        rows="2"
+      ></textarea>
+      <div class="todo-details">
+        <input type="date" bind:value={editedTodo.due_date} />
+        <select bind:value={editedTodo.status}>
+          <option value="pending">Pending</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+      <div class="todo-actions">
+        <button class="save-btn" on:click={saveEdit}>Save</button>
+        <button class="cancel-btn" on:click={cancelEdit}>Cancel</button>
+      </div>
+    {:else}
+      <div class="todo-header">
+        <h3 class:completed={todo.status === "completed"}>{todo.name}</h3>
+        <div class="todo-actions">
+          <button class="edit-btn" on:click={startEditing}>
+            <span class="material-icons">edit</span>
+          </button>
+          <button class="delete-btn" on:click={deleteTodo}>
+            <span class="material-icons">delete</span>
+          </button>
+        </div>
+      </div>
+      <p class="todo-description">{todo.description}</p>
+      <div class="todo-details">
+        <span class="due-date">
+          <span class="material-icons">event</span>
+          {todo.due_date}
+        </span>
+        <span class="status {todo.status}">
+          <span class="material-icons">
+            {todo.status === "completed" ? "check_circle" : "pending"}
+          </span>
+          {todo.status}
+        </span>
+      </div>
+    {/if}
+  </div>
+</div>
 
 <style>
-  li {
-    background-color: #f9f9f9;
-    margin-bottom: 10px;
-    padding: 15px;
+  @import url("https://fonts.googleapis.com/icon?family=Material+Icons");
+
+  .todo-item {
     display: flex;
-    flex-direction: column;
-    justify-content: space-between;
     align-items: flex-start;
-    border-radius: 5px;
+    background-color: #ffffff;
+    border: 1px solid #e8ecee;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: box-shadow 0.3s ease;
   }
 
-  input {
-    margin-bottom: 10px;
+  .todo-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .todo-checkbox {
+    margin-right: 1rem;
+  }
+
+  .todo-checkbox input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+  }
+
+  .todo-content {
+    flex-grow: 1;
+  }
+
+  .todo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #2c3e50;
+  }
+
+  h3.completed {
+    text-decoration: line-through;
+    color: #7f8c8d;
+  }
+
+  .todo-description {
+    margin: 0 0 0.5rem 0;
+    color: #34495e;
+    font-size: 0.9rem;
+  }
+
+  .todo-details {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #7f8c8d;
+  }
+
+  .todo-details span {
+    display: flex;
+    align-items: center;
+  }
+
+  .todo-details .material-icons {
+    font-size: 1rem;
+    margin-right: 0.25rem;
+  }
+
+  .status {
+    text-transform: capitalize;
+  }
+
+  .status.completed {
+    color: #27ae60;
+  }
+
+  .status.pending {
+    color: #e67e22;
+  }
+
+  .todo-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+  }
+
+  button:hover {
+    background-color: #f1f3f5;
   }
 
   .edit-btn,
   .delete-btn {
-    margin-right: 5px;
+    color: #7f8c8d;
   }
 
-  .edit-btn {
-    background-color: #4caf50;
+  .save-btn,
+  .cancel-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .save-btn {
+    background-color: #7b68ee;
     color: white;
   }
 
-  .delete-btn {
-    background-color: #f44336;
-    color: white;
+  .save-btn:hover {
+    background-color: #6c5ce7;
+  }
+
+  .cancel-btn {
+    background-color: #e8ecee;
+    color: #2c3e50;
+  }
+
+  .cancel-btn:hover {
+    background-color: #d1d8e0;
+  }
+
+  input[type="text"],
+  input[type="date"],
+  select,
+  textarea {
+    width: 100%;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid #e8ecee;
+    border-radius: 4px;
+    font-size: 0.9rem;
+  }
+
+  textarea {
+    resize: vertical;
   }
 </style>

@@ -70,7 +70,7 @@ POST to `/todos`:
 
 ```json
 {
-  "name": "Sleekflow project",
+  "name": "project",
   "description": "Finish the todo application",
   "due_date": "2023-12-31T23:59:59Z",
   "status": "pending"

@@ -12,14 +12,16 @@ import (
 
 	"github.com/harrisin2037/todoapp/internal/models"
 	"github.com/harrisin2037/todoapp/internal/service"
+	"github.com/harrisin2037/todoapp/internal/websocket"
 )
 
 type TodoHandler struct {
+	hub     *websocket.Hub
 	service *service.TodoService
 }
 
-func NewTodoHandler(service *service.TodoService) *TodoHandler {
-	return &TodoHandler{service: service}
+func NewTodoHandler(service *service.TodoService, hub *websocket.Hub) *TodoHandler {
+	return &TodoHandler{service: service, hub: hub}
 }
 
 type TodoCreateRequest struct {
@@ -74,6 +76,8 @@ func (h *TodoHandler) CreateTodo(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	h.hub.Broadcast <- []byte(`{"message": "new todo created"}`)
 
 	c.JSON(http.StatusCreated, todo)
 }
@@ -175,6 +179,8 @@ func (h *TodoHandler) UpdateTodo(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	h.hub.Broadcast <- []byte(`{"message": "todo updated"}`)
 
 	c.JSON(http.StatusOK, todo)
 }
