@@ -1,5 +1,6 @@
 <script>
   import { onMount, onDestroy } from "svelte";
+  import { isLoading } from "./loadingStore";
   import Sidebar from "./components/Sidebar.svelte";
   import Header from "./components/Header.svelte";
   import TaskList from "./components/TaskList.svelte";
@@ -15,7 +16,6 @@
   let todos = [];
   let pollingInterval;
   let isAuthenticated = false;
-  let isLoading = true;
   let isAdmin = false;
   let socket;
   let onlineUsers = [];
@@ -24,7 +24,6 @@
     checkMobile();
     await checkAuth();
     window.addEventListener("resize", checkMobile);
-    isLoading = false;
 
     socket = new WebSocket(`${API_BASE_URL.replace("http", "ws")}/online`);
 
@@ -33,6 +32,7 @@
       updateMyOnlineStatus();
       whoAreOnline();
       setInterval(updateMyOnlineStatus, 30000);
+      isLoading.set(false);
     });
 
     socket.addEventListener("message", (event) => {
@@ -92,19 +92,25 @@
 
   async function checkAdminStatus() {
     const token = localStorage.getItem("token");
+    if (!token) {
+      isAdmin = false;
+      return;
+    }
     try {
-      // TODO: need to change to an API to check user role
-      const response = await fetch(`${API_BASE_URL}/admin/users`, {
+      const response = await fetch(`${API_BASE_URL}/roles`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      if (response.ok) {
-        const userData = await response.json();
-        isAdmin = true;
-      } else {
+
+      if (!response.ok) {
         isAdmin = false;
+        isLoading.set(true);
+        return;
       }
+
+      const data = await response.json();
+      data.role === "admin" ? (isAdmin = true) : (isAdmin = false);
     } catch (error) {
       console.error("Error checking admin status:", error);
       isAdmin = false;
@@ -150,13 +156,17 @@
     clearInterval(pollingInterval);
     todos = [];
   }
+
+  function handleTodoUpdate() {
+    fetchTodos();
+  }
 </script>
 
 <main
   class={`${isMobile ? "mobile" : "desktop"} ${!isAuthenticated ? "auth" : ""}`}
 >
-  {#if isLoading}
-    <div class="loading">Loading...</div>
+  {#if $isLoading}
+    <div class="loading">...</div>
   {:else if isAuthenticated}
     {#if !isMobile}
       <Sidebar {setActiveView} {activeView} {isAdmin} />
@@ -215,15 +225,6 @@
     grid-template-columns: auto 1fr;
   }
 
-  .loading {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    font-size: 1.2em;
-    color: #333;
-  }
-
   .auth-wrapper {
     display: flex;
     justify-content: center;
@@ -244,9 +245,9 @@
   }
 
   .loading {
-    font-size: 24px;
+    font-size: 38px;
     font-weight: bold;
-    color: #d8c2be;
+    color: #95b19d;
     animation: loadingAnimation 1.5s infinite;
     position: absolute;
     top: 50%;
@@ -258,15 +259,15 @@
   @keyframes loadingAnimation {
     0% {
       opacity: 1;
-      color: #ff6347;
+      color: #66e477;
     }
     50% {
       opacity: 0.5;
-      color: #4682b4;
+      color: #b2aee6;
     }
     100% {
       opacity: 1;
-      color: #ff6347;
+      color: #29e9b2;
     }
   }
 </style>

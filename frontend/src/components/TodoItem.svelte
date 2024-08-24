@@ -1,12 +1,36 @@
 <script>
   import { createEventDispatcher } from "svelte";
   import { API_BASE_URL } from "../config";
+  import TaskExpandedView from "./TaskExpandedView.svelte";
 
   export let todo;
   let isEditing = false;
   let editedTodo = { ...todo };
 
+  let isExpanded = false;
+
+  function toggleExpanded() {
+    isExpanded = !isExpanded;
+  }
+
+  function handleUpdate() {
+    dispatch("update");
+  }
+
   const dispatch = createEventDispatcher();
+
+  function getStatusText(status) {
+    switch (status) {
+      case "pending":
+        return "Pending";
+      case "in_progress":
+        return "In Progress";
+      case "completed":
+        return "Completed";
+      default:
+        return "Unknown Status";
+    }
+  }
 
   function startEditing() {
     isEditing = true;
@@ -18,7 +42,7 @@
   }
 
   async function saveEdit() {
-    const response = await fetch(`${API_BASE_URL}/todos/${todo.ID}`, {
+    const response = await fetch(`${API_BASE_URL}/todos/${todo.id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -36,7 +60,7 @@
   }
 
   async function deleteTodo() {
-    const response = await fetch(`${API_BASE_URL}/todos/${todo.ID}`, {
+    const response = await fetch(`${API_BASE_URL}/todos/${todo.id}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -77,6 +101,7 @@
         <input type="date" bind:value={editedTodo.due_date} />
         <select bind:value={editedTodo.status}>
           <option value="pending">Pending</option>
+          <option value="in_progress">In Progress</option>
           <option value="completed">Completed</option>
         </select>
       </div>
@@ -94,6 +119,9 @@
           <button class="delete-btn" on:click={deleteTodo}>
             <span class="material-icons">delete</span>
           </button>
+          <button class="expand-btn" on:click={toggleExpanded}>
+            <span class="material-icons">open_in_full</span>
+          </button>
         </div>
       </div>
       <p class="todo-description">{todo.description}</p>
@@ -106,12 +134,16 @@
           <span class="material-icons">
             {todo.status === "completed" ? "check_circle" : "pending_actions"}
           </span>
-          {todo.status}
+          {getStatusText(todo.status)}
         </span>
       </div>
     {/if}
   </div>
 </div>
+
+{#if isExpanded}
+  <TaskExpandedView {todo} onClose={toggleExpanded} onUpdate={handleUpdate} />
+{/if}
 
 <style>
   @font-face {
@@ -242,6 +274,10 @@
     color: #e67e22;
   }
 
+  .status.in_progress {
+    color: #3498db;
+  }
+
   .todo-actions {
     display: flex;
     gap: 0.5rem;
@@ -304,5 +340,9 @@
 
   textarea {
     resize: vertical;
+  }
+
+  .expand-btn {
+    color: #7f8c8d;
   }
 </style>

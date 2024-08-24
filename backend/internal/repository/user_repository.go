@@ -58,28 +58,22 @@ func (r *UserRepository) FindAll() ([]models.User, error) {
 	return users, nil
 }
 
-func (r *UserRepository) Update(userID int64, username, email, password string) error {
-	user, err := r.FindByID(userID)
+func (r *UserRepository) Update(user *models.User) error {
+
+	var existingUser models.User
+
+	err := r.db.First(&existingUser, user.ID).Error
 	if err != nil {
 		return err
 	}
 
-	if username != "" {
-		user.Username = username
+	if existingUser.Password != user.Password {
+		err = r.db.Model(&models.User{}).Where("id = ?", user.ID).Updates(user).Error
+	} else {
+		err = r.db.Model(&models.User{}).Where("id = ?", user.ID).Omit("password").Updates(user).Error
 	}
 
-	if email != "" {
-		user.Email = email
-	}
-
-	if password != "" {
-		err = user.SetPassword(password)
-		if err != nil {
-			return err
-		}
-	}
-
-	return r.db.Save(user).Error
+	return err
 }
 
 func (r *UserRepository) Delete(userID int64) error {

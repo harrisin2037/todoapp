@@ -100,7 +100,8 @@ func (s *UserService) GetAllUsers() ([]models.User, error) {
 	return users, nil
 }
 
-func (s *UserService) UpdateUser(userID int64, username, email, password string) error {
+func (s *UserService) UpdateUser(userID int64, username, email, password, role string) error {
+
 	user, err := s.repo.FindByID(userID)
 	if err != nil {
 		return ErrUserNotFound
@@ -121,7 +122,15 @@ func (s *UserService) UpdateUser(userID int64, username, email, password string)
 		}
 	}
 
-	return s.repo.Update(userID, username, email, password)
+	if role != "" {
+		newRole, err := models.ParseRole(role)
+		if err != nil {
+			return err
+		}
+		user.Role = newRole
+	}
+
+	return s.repo.Update(user)
 }
 
 func (s *UserService) DeleteUser(userID int64) error {

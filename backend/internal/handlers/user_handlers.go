@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -75,6 +76,23 @@ func (h *UserHandler) Login(c *gin.Context) {
 			"role":     user.Role,
 		},
 	})
+}
+
+func (h *UserHandler) CheckRoles(c *gin.Context) {
+
+	userClaims, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	claims, ok := userClaims.(*utils.Claims)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse user claims"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"role": claims.Role})
 }
 
 func (h *UserHandler) ChangeRole(c *gin.Context) {
@@ -167,7 +185,15 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 }
 
 func (h *UserHandler) UpdateUser(c *gin.Context) {
+
 	id := c.Param("id")
+
+	_, err := strconv.Atoi(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
 	userID, err := utils.StringToUint(id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
@@ -178,6 +204,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		Username string `json:"username"`
 		Email    string `json:"email" binding:"omitempty,email"`
 		Password string `json:"password" binding:"omitempty,min=6"`
+		Role     string `json:"role" binding:"omitempty,oneof=user admin"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -185,7 +212,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	err = h.userService.UpdateUser(int64(userID), req.Username, req.Email, req.Password)
+	err = h.userService.UpdateUser(int64(userID), req.Username, req.Email, req.Password, req.Role)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -195,10 +222,28 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 }
 
 func (h *UserHandler) DeleteUser(c *gin.Context) {
+
 	id := c.Param("id")
 	userID, err := utils.StringToUint(id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	userClaims, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	claims, ok := userClaims.(*utils.Claims)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse user claims"})
+		return
+	}
+
+	if claims.UserID == uint(userID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot delete your own account"})
 		return
 	}
 

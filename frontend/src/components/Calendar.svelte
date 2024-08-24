@@ -81,7 +81,7 @@
 
   async function toggleTodoCompletion(todoId) {
     try {
-      const todo = todos.find((t) => t.ID === todoId);
+      const todo = todos.find((t) => t.id === todoId);
       const updatedStatus =
         todo.status === "completed" ? "pending" : "completed";
 
@@ -97,7 +97,7 @@
       if (!response.ok) throw new Error("Failed to update todo");
 
       todos = todos.map((t) =>
-        t.ID === todoId ? { ...t, status: updatedStatus } : t
+        t.id === todoId ? { ...t, status: updatedStatus } : t
       );
     } catch (error) {
       console.error("Error updating todo:", error);

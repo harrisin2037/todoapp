@@ -12,12 +12,31 @@ const (
 	RoleAdmin Role = "admin"
 )
 
+var (
+	ErrInvalidRole = gorm.ErrInvalidData
+)
+
 type User struct {
 	gorm.Model
 	Username string `gorm:"type:varchar(100);uniqueIndex;not null"`
 	Email    string `gorm:"type:varchar(100);uniqueIndex;not null"`
 	Password string `gorm:"not null"`
 	Role     Role   `gorm:"type:varchar(20);default:'user'"`
+}
+
+func (r Role) String() string {
+	return string(r)
+}
+
+func ParseRole(role string) (Role, error) {
+	switch role {
+	case "user":
+		return RoleUser, nil
+	case "admin":
+		return RoleAdmin, nil
+	default:
+		return "", ErrInvalidRole
+	}
 }
 
 func (u *User) SetPassword(password string) error {

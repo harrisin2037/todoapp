@@ -5,7 +5,7 @@
   export let onToggleComplete;
 
   function handleToggle(task) {
-    onToggleComplete(task.ID);
+    onToggleComplete(task.id);
   }
 
   function formatDate(dateString) {

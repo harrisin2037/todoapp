@@ -39,14 +39,6 @@ func main() {
 		log.Fatalf("Failed to auto migrate: %v", err)
 	}
 
-	weekLater := time.Now().AddDate(0, 0, 7)
-
-	_ = db.Create(&models.Todo{
-		Name:        "Create a new todo",
-		Description: "This is a new todo",
-		DueDate:     &weekLater,
-	})
-
 	admin := &models.User{
 		Username: "admin",
 		Email:    "admin",
@@ -83,6 +75,7 @@ func main() {
 	userRouter := router.Group("/")
 	userRouter.Use(middlewares.AuthMiddleware())
 	{
+		userRouter.GET("/roles", userHandler.CheckRoles)
 		userRouter.POST("/todos", todoHandler.CreateTodo)
 		userRouter.GET("/todos", todoHandler.GetTodos)
 		userRouter.GET("/todos/:id", todoHandler.GetTodo)
@@ -90,19 +83,14 @@ func main() {
 		userRouter.DELETE("/todos/:id", todoHandler.DeleteTodo)
 	}
 
-	// router.POST("/todos", todoHandler.CreateTodo)
-	// router.GET("/todos", todoHandler.GetTodos)
-	// router.GET("/todos/:id", todoHandler.GetTodo)
-	// router.PUT("/todos/:id", todoHandler.UpdateTodo)
-	// router.DELETE("/todos/:id", todoHandler.DeleteTodo)
-
 	adminRouter := router.Group("/admin")
 	adminRouter.Use(middlewares.AuthMiddleware(), middlewares.AdminMiddleware())
 	{
 		adminRouter.PUT("/role", userHandler.ChangeRole)
-		adminRouter.PUT("/users/:id", userHandler.GetUser)
+		adminRouter.PUT("/users/:id", userHandler.UpdateUser)
 		adminRouter.GET("/users", userHandler.GetAllUsers)
 		adminRouter.POST("/users", userHandler.CreateUser)
+		adminRouter.DELETE("/users/:id", userHandler.DeleteUser)
 	}
 
 	port := os.Getenv("PORT")
@@ -112,6 +100,11 @@ func main() {
 
 	router.GET("/ws", func(c *gin.Context) {
 		hub.HandleWebSocket(c)
+	})
+
+	// online status websocket
+	router.GET("/online", func(c *gin.Context) {
+		// hub.HandleOnlineStatus(c)
 	})
 
 	go func() {

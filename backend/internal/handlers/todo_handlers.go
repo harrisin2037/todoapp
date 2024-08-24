@@ -38,6 +38,14 @@ type TodoUpdateRequest struct {
 	Status      string  `json:"status" binding:"omitempty,oneof=pending in_progress completed"`
 }
 
+type TodoResponse struct {
+	ID          uint       `json:"id"`
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	DueDate     *time.Time `json:"due_date"`
+	Status      string     `json:"status"`
+}
+
 func (h *TodoHandler) CreateTodo(c *gin.Context) {
 
 	var req TodoCreateRequest
@@ -56,10 +64,10 @@ func (h *TodoHandler) CreateTodo(c *gin.Context) {
 		dueDate = &parsedTime
 	}
 
-	if dueDate != nil && dueDate.Before(time.Now()) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Due date must be in the future"})
-		return
-	}
+	// if dueDate != nil && dueDate.Before(time.Now()) {
+	// 	c.JSON(http.StatusBadRequest, gin.H{"error": "Due date must be in the future"})
+	// 	return
+	// }
 
 	todo := &models.Todo{
 		Name:        req.Name,
@@ -79,7 +87,15 @@ func (h *TodoHandler) CreateTodo(c *gin.Context) {
 
 	h.hub.Broadcast <- []byte(`{"message": "new todo created"}`)
 
-	c.JSON(http.StatusCreated, todo)
+	response := TodoResponse{
+		ID:          todo.ID,
+		Name:        todo.Name,
+		Description: todo.Description,
+		DueDate:     todo.DueDate,
+		Status:      todo.Status,
+	}
+
+	c.JSON(http.StatusCreated, response)
 }
 
 func (h *TodoHandler) GetTodos(c *gin.Context) {
@@ -115,7 +131,19 @@ func (h *TodoHandler) GetTodos(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, todos)
+	response := []TodoResponse{}
+
+	for _, todo := range todos {
+		response = append(response, TodoResponse{
+			ID:          todo.ID,
+			Name:        todo.Name,
+			Description: todo.Description,
+			DueDate:     todo.DueDate,
+			Status:      todo.Status,
+		})
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 func (h *TodoHandler) GetTodo(c *gin.Context) {
@@ -131,7 +159,15 @@ func (h *TodoHandler) GetTodo(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, todo)
+	response := TodoResponse{
+		ID:          todo.ID,
+		Name:        todo.Name,
+		Description: todo.Description,
+		DueDate:     todo.DueDate,
+		Status:      todo.Status,
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 func (h *TodoHandler) UpdateTodo(c *gin.Context) {
@@ -165,10 +201,10 @@ func (h *TodoHandler) UpdateTodo(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format"})
 			return
 		}
-		if parsedTime.Before(time.Now()) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Due date must be in the future"})
-			return
-		}
+		// if parsedTime.Before(time.Now()) {
+		// 	c.JSON(http.StatusBadRequest, gin.H{"error": "Due date must be in the future"})
+		// 	return
+		// }
 		todo.DueDate = &parsedTime
 	}
 	if req.Status != "" {
@@ -182,7 +218,15 @@ func (h *TodoHandler) UpdateTodo(c *gin.Context) {
 
 	h.hub.Broadcast <- []byte(`{"message": "todo updated"}`)
 
-	c.JSON(http.StatusOK, todo)
+	response := TodoResponse{
+		ID:          todo.ID,
+		Name:        todo.Name,
+		Description: todo.Description,
+		DueDate:     todo.DueDate,
+		Status:      todo.Status,
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 func (h *TodoHandler) DeleteTodo(c *gin.Context) {

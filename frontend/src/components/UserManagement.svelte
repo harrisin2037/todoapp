@@ -123,12 +123,12 @@
           <td>{user.email}</td>
           <td>{user.role}</td>
           <td>
-            <button class="edit-btn" on:click={() => openModal(user)}
-              >Edit</button
-            >
-            <button class="delete-btn" on:click={() => deleteUser(user.id)}
-              >Delete</button
-            >
+            <button class="edit-btn" on:click={() => openModal(user)}>
+              <span class="material-icons">edit</span>
+            </button>
+            <button class="delete-btn" on:click={() => deleteUser(user.id)}>
+              <span class="material-icons">delete</span>
+            </button>
           </td>
         </tr>
       {/each}
@@ -140,6 +140,7 @@
       <div class="modal-content">
         <h3>{editingUser ? "Edit User" : "Add User"}</h3>
         <form on:submit|preventDefault={editingUser ? updateUser : addUser}>
+          <label for="username">Username</label>
           <input
             type="text"
             placeholder="Username"
@@ -147,6 +148,7 @@
             required
           />
           {#if !editingUser}
+            <label for="password">Password</label>
             <input
               type="password"
               placeholder="Password"
@@ -154,6 +156,7 @@
               required
             />
           {/if}
+          <label for="email">Email</label>
           <input
             type="email"
             placeholder="Email"
@@ -216,21 +219,25 @@
 
   .edit-btn,
   .delete-btn {
-    padding: 0.25rem 0.5rem;
+    background: none;
     border: none;
-    border-radius: 4px;
     cursor: pointer;
-    margin-right: 0.5rem;
+    padding: 8px;
+    margin: 0 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #555;
   }
 
-  .edit-btn {
-    background-color: #4caf50;
-    color: white;
+  .edit-btn:hover,
+  .delete-btn:hover {
+    color: #000;
   }
 
-  .delete-btn {
-    background-color: #f44336;
-    color: white;
+  .material-icons {
+    font-size: 24px;
   }
 
   .modal {

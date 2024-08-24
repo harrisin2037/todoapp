@@ -6,7 +6,8 @@
 
   let newTodo = { name: "", description: "", due_date: "" };
   let showModal = false;
-  let showPending = true;
+  let showInProgress = true;
+  let showPending = false;
   let showCompleted = false;
   let searchQuery = "";
   let filterStatus = "all";
@@ -32,7 +33,10 @@
       return 0;
     });
 
-  $: pendingTodos = filteredTodos.filter((todo) => todo.status !== "completed");
+  $: inProgressTodos = filteredTodos.filter(
+    (todo) => todo.status === "in_progress"
+  );
+  $: pendingTodos = filteredTodos.filter((todo) => todo.status === "pending");
   $: completedTodos = filteredTodos.filter(
     (todo) => todo.status === "completed"
   );
@@ -75,6 +79,10 @@
     showModal = !showModal;
   }
 
+  function toggleInProgress() {
+    showInProgress = !showInProgress;
+  }
+
   function togglePending() {
     showPending = !showPending;
   }
@@ -101,6 +109,7 @@
     />
     <select bind:value={filterStatus} class="filter-select">
       <option value="all">All</option>
+      <option value="in_progress">In Progress</option>
       <option value="pending">Pending</option>
       <option value="completed">Completed</option>
     </select>
@@ -118,6 +127,20 @@
 
   <div class="task-list-content">
     <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <div class="tasks-header" on:click={toggleInProgress}>
+      <h3>In Progress Tasks ({inProgressTodos.length})</h3>
+      <span class="expand-icon">{showInProgress ? "▼" : "▶"}</span>
+    </div>
+
+    {#if showInProgress}
+      <div class="tasks-list">
+        {#each inProgressTodos as todo (todo.id)}
+          <TodoItem {todo} on:update={fetchTodos} on:delete={fetchTodos} />
+        {/each}
+      </div>
+    {/if}
+
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
     <div class="tasks-header" on:click={togglePending}>
       <h3>Pending Tasks ({pendingTodos.length})</h3>
       <span class="expand-icon">{showPending ? "▼" : "▶"}</span>
@@ -125,7 +148,7 @@
 
     {#if showPending}
       <div class="tasks-list">
-        {#each pendingTodos as todo (todo.ID)}
+        {#each pendingTodos as todo (todo.id)}
           <TodoItem {todo} on:update={fetchTodos} on:delete={fetchTodos} />
         {/each}
       </div>
@@ -139,7 +162,7 @@
 
     {#if showCompleted}
       <div class="tasks-list">
-        {#each completedTodos as todo (todo.ID)}
+        {#each completedTodos as todo (todo.id)}
           <TodoItem {todo} on:update={fetchTodos} on:delete={fetchTodos} />
         {/each}
       </div>
