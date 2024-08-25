@@ -1,7 +1,6 @@
 <script>
   import { createEventDispatcher } from "svelte";
   import { API_BASE_URL } from "../config";
-  import TaskExpandedView from "./TaskExpandedView.svelte";
 
   export let allUsers = [];
   export let todo;
