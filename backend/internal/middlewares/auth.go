@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/harrisin2037/todoapp/internal/utils"
+	"github.com/harrisin2037/todoapp/internal/models"
 )
 
 func AuthMiddleware() gin.HandlerFunc {
@@ -25,7 +25,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		claims, err := utils.ValidateToken(bearerToken[1])
+		claims, err := models.ValidateToken(bearerToken[1])
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
@@ -46,7 +46,7 @@ func AdminMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		claims, ok := user.(*utils.Claims)
+		claims, ok := user.(*models.Claims)
 		if !ok {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse user claims"})
 			c.Abort()

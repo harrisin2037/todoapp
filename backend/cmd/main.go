@@ -51,13 +51,13 @@ func main() {
 	go hub.Run()
 
 	var (
-		todoRepo    = repository.NewTodoRepository(db)
-		todoService = service.NewTodoService(todoRepo)
-		todoHandler = handlers.NewTodoHandler(todoService, hub)
+		router      = gin.Default()
 		userRepo    = repository.NewUserRepository(db)
 		userService = service.NewUserService(userRepo)
+		todoRepo    = repository.NewTodoRepository(db)
+		todoService = service.NewTodoService(todoRepo)
 		userHandler = handlers.NewUserHandler(userService)
-		router      = gin.Default()
+		todoHandler = handlers.NewTodoHandler(todoService, userService, hub)
 	)
 
 	router.Use(cors.New(cors.Config{
@@ -81,6 +81,8 @@ func main() {
 		userRouter.GET("/todos/:id", todoHandler.GetTodo)
 		userRouter.PUT("/todos/:id", todoHandler.UpdateTodo)
 		userRouter.DELETE("/todos/:id", todoHandler.DeleteTodo)
+
+		router.GET("/users", userHandler.GetAllUsers)
 	}
 
 	adminRouter := router.Group("/admin")

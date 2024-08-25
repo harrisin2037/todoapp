@@ -3,6 +3,7 @@
   import { API_BASE_URL } from "../config";
 
   export let todos;
+  export let allUsers = [];
 
   let newTodo = { name: "", description: "", due_date: "" };
   let showModal = false;
@@ -135,7 +136,12 @@
     {#if showInProgress}
       <div class="tasks-list">
         {#each inProgressTodos as todo (todo.id)}
-          <TodoItem {todo} on:update={fetchTodos} on:delete={fetchTodos} />
+          <TodoItem
+            {todo}
+            {allUsers}
+            on:update={fetchTodos}
+            on:delete={fetchTodos}
+          />
         {/each}
       </div>
     {/if}
@@ -149,7 +155,12 @@
     {#if showPending}
       <div class="tasks-list">
         {#each pendingTodos as todo (todo.id)}
-          <TodoItem {todo} on:update={fetchTodos} on:delete={fetchTodos} />
+          <TodoItem
+            {todo}
+            {allUsers}
+            on:update={fetchTodos}
+            on:delete={fetchTodos}
+          />
         {/each}
       </div>
     {/if}
@@ -163,7 +174,12 @@
     {#if showCompleted}
       <div class="tasks-list">
         {#each completedTodos as todo (todo.id)}
-          <TodoItem {todo} on:update={fetchTodos} on:delete={fetchTodos} />
+          <TodoItem
+            {todo}
+            {allUsers}
+            on:update={fetchTodos}
+            on:delete={fetchTodos}
+          />
         {/each}
       </div>
     {/if}

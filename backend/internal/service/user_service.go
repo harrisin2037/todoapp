@@ -5,7 +5,6 @@ import (
 
 	"github.com/harrisin2037/todoapp/internal/models"
 	"github.com/harrisin2037/todoapp/internal/repository"
-	"github.com/harrisin2037/todoapp/internal/utils"
 )
 
 type UserService struct {
@@ -61,7 +60,7 @@ func (s *UserService) Login(username, password string) (*models.User, string, er
 		return nil, "", ErrInvalidCredentials
 	}
 
-	token, err := utils.GenerateToken(user)
+	token, err := models.GenerateToken(user)
 	if err != nil {
 		return nil, "", ErrFailedToGenerateJWT
 	}
@@ -69,7 +68,11 @@ func (s *UserService) Login(username, password string) (*models.User, string, er
 	return user, token, nil
 }
 
-func (s *UserService) ChangeRole(userID int64, newRole models.Role) error {
+func (s *UserService) GetUsersByIDs(ids []uint) ([]models.User, error) {
+	return s.repo.GetUsersByIDs(ids)
+}
+
+func (s *UserService) ChangeRole(userID uint, newRole models.Role) error {
 	user, err := s.repo.FindByID(userID)
 	if err != nil {
 		return ErrUserNotFound
@@ -82,7 +85,7 @@ func (s *UserService) ChangeRole(userID int64, newRole models.Role) error {
 	return s.repo.UpdateRole(userID, newRole)
 }
 
-func (s *UserService) GetUserByID(userID int64) (*models.User, error) {
+func (s *UserService) GetUserByID(userID uint) (*models.User, error) {
 	user, err := s.repo.FindByID(userID)
 	if err != nil {
 		return nil, ErrUserNotFound
@@ -100,7 +103,7 @@ func (s *UserService) GetAllUsers() ([]models.User, error) {
 	return users, nil
 }
 
-func (s *UserService) UpdateUser(userID int64, username, email, password, role string) error {
+func (s *UserService) UpdateUser(userID uint, username, email, password, role string) error {
 
 	user, err := s.repo.FindByID(userID)
 	if err != nil {
@@ -133,7 +136,7 @@ func (s *UserService) UpdateUser(userID int64, username, email, password, role s
 	return s.repo.Update(user)
 }
 
-func (s *UserService) DeleteUser(userID int64) error {
+func (s *UserService) DeleteUser(userID uint) error {
 	_, err := s.repo.FindByID(userID)
 	if err != nil {
 		return ErrUserNotFound

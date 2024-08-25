@@ -18,6 +18,12 @@ func (r *UserRepository) Create(user *models.User) error {
 	return r.db.Create(user).Error
 }
 
+func (r *UserRepository) GetUsersByIDs(ids []uint) ([]models.User, error) {
+	var users []models.User
+	err := r.db.Where("id IN ?", ids).Find(&users).Error
+	return users, err
+}
+
 func (r *UserRepository) FindByUsername(username string) (*models.User, error) {
 	var user models.User
 	err := r.db.Where("username = ?", username).First(&user).Error
@@ -36,11 +42,11 @@ func (r *UserRepository) FindByEmail(email string) (*models.User, error) {
 	return &user, nil
 }
 
-func (r *UserRepository) UpdateRole(userID int64, role models.Role) error {
+func (r *UserRepository) UpdateRole(userID uint, role models.Role) error {
 	return r.db.Model(&models.User{}).Where("id = ?", userID).Update("role", role).Error
 }
 
-func (r *UserRepository) FindByID(userID int64) (*models.User, error) {
+func (r *UserRepository) FindByID(userID uint) (*models.User, error) {
 	var user models.User
 	err := r.db.Where("id = ?", userID).First(&user).Error
 	if err != nil {
@@ -76,6 +82,6 @@ func (r *UserRepository) Update(user *models.User) error {
 	return err
 }
 
-func (r *UserRepository) Delete(userID int64) error {
+func (r *UserRepository) Delete(userID uint) error {
 	return r.db.Delete(&models.User{}, userID).Error
 }

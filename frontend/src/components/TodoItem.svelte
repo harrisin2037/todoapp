@@ -3,11 +3,15 @@
   import { API_BASE_URL } from "../config";
   import TaskExpandedView from "./TaskExpandedView.svelte";
 
+  export let allUsers = [];
   export let todo;
+
   let isEditing = false;
   let editedTodo = { ...todo };
-
   let isExpanded = false;
+  let newAssignee = "";
+
+  const dispatch = createEventDispatcher();
 
   function toggleExpanded() {
     isExpanded = !isExpanded;
@@ -17,24 +21,22 @@
     dispatch("update");
   }
 
-  const dispatch = createEventDispatcher();
-
   function getStatusText(status) {
-    switch (status) {
-      case "pending":
-        return "Pending";
-      case "in_progress":
-        return "In Progress";
-      case "completed":
-        return "Completed";
-      default:
-        return "Unknown Status";
-    }
+    const statusMap = {
+      pending: "Pending",
+      in_progress: "In Progress",
+      completed: "Completed",
+    };
+    return statusMap[status] || "Unknown Status";
+  }
+
+  function getInitials(name) {
+    return name ? name.charAt(0).toUpperCase() : "?";
   }
 
   function startEditing() {
+    editedTodo = { ...todo, assignees: todo.assignees || [] };
     isEditing = true;
-    editedTodo = { ...todo };
   }
 
   function cancelEdit() {
@@ -42,21 +44,33 @@
   }
 
   async function saveEdit() {
+    const todoToSave = {
+      ...editedTodo,
+      assignee_ids: editedTodo.assignees
+        ? editedTodo.assignees.map((user) => user.id)
+        : [],
+    };
+
     const response = await fetch(`${API_BASE_URL}/todos/${todo.id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
-      body: JSON.stringify(editedTodo),
+      body: JSON.stringify(todoToSave),
     });
+
     if (response.ok) {
+      todo = await response.json();
       isEditing = false;
       dispatch("update");
     } else {
-      const errorData = await response.json();
-      alert(`Error: ${errorData.error}`);
+      console.error("Failed to update todo");
     }
+  }
+
+  function getUserById(id) {
+    return allUsers.find((user) => user.id === id);
   }
 
   async function deleteTodo() {
@@ -79,203 +93,203 @@
       editedTodo.status === "completed" ? "pending" : "completed";
     await saveEdit();
   }
+
+  function addAssignee() {
+    if (newAssignee) {
+      const userToAdd = allUsers.find((user) => user.id === newAssignee);
+      if (
+        userToAdd &&
+        !editedTodo.assignees.some((user) => user.id === userToAdd.id)
+      ) {
+        editedTodo.assignees = [...editedTodo.assignees, userToAdd];
+        newAssignee = "";
+      }
+    }
+  }
+
+  function removeAssignee(assigneeId) {
+    editedTodo.assignees = editedTodo.assignees.filter(
+      (user) => user.id !== assigneeId
+    );
+  }
 </script>
 
-<div class="todo-item">
-  <div class="todo-checkbox">
-    <input
-      type="checkbox"
-      checked={todo.status === "completed"}
-      on:change={toggleStatus}
-    />
-  </div>
-  <div class="todo-content">
-    {#if isEditing}
-      <input type="text" bind:value={editedTodo.name} placeholder="Task name" />
-      <textarea
-        bind:value={editedTodo.description}
-        placeholder="Description"
-        rows="2"
-      ></textarea>
-      <div class="todo-details">
-        <input type="date" bind:value={editedTodo.due_date} />
-        <select bind:value={editedTodo.status}>
-          <option value="pending">Pending</option>
-          <option value="in_progress">In Progress</option>
-          <option value="completed">Completed</option>
-        </select>
-      </div>
-      <div class="todo-actions">
-        <button class="save-btn" on:click={saveEdit}>Save</button>
-        <button class="cancel-btn" on:click={cancelEdit}>Cancel</button>
-      </div>
-    {:else}
-      <div class="todo-header">
+<div class="todo-item {todo.status}">
+  <div class="todo-header">
+    <div class="todo-title">
+      <input
+        type="checkbox"
+        checked={todo.status === "completed"}
+        on:change={toggleStatus}
+      />
+      {#if isEditing}
+        <input
+          type="text"
+          bind:value={editedTodo.name}
+          placeholder="Task name"
+        />
+      {:else}
         <h3 class:completed={todo.status === "completed"}>{todo.name}</h3>
-        <div class="todo-actions">
-          <button class="edit-btn" on:click={startEditing}>
-            <span class="material-icons">edit</span>
-          </button>
-          <button class="delete-btn" on:click={deleteTodo}>
-            <span class="material-icons">delete</span>
-          </button>
-          <button class="expand-btn" on:click={toggleExpanded}>
-            <span class="material-icons">open_in_full</span>
-          </button>
-        </div>
+      {/if}
+    </div>
+    <div class="todo-actions">
+      {#if isEditing}
+        <button class="btn save-btn" on:click={saveEdit}>Save</button>
+        <button class="btn cancel-btn" on:click={cancelEdit}>Cancel</button>
+      {:else}
+        <button class="btn edit-btn" on:click={startEditing}>
+          <span class="material-icons">edit</span>
+        </button>
+        <button class="btn delete-btn" on:click={deleteTodo}>
+          <span class="material-icons">delete</span>
+        </button>
+        <button class="btn expand-btn" on:click={toggleExpanded}>
+          <span class="material-icons">
+            {isExpanded ? "expand_less" : "expand_more"}
+          </span>
+        </button>
+      {/if}
+    </div>
+  </div>
+
+  {#if isEditing || isExpanded}
+    <div class="todo-details">
+      <div class="todo-description">
+        {#if isEditing}
+          <textarea
+            bind:value={editedTodo.description}
+            placeholder="Description"
+            rows="3"
+          ></textarea>
+        {:else}
+          <p>{todo.description}</p>
+        {/if}
       </div>
-      <p class="todo-description">{todo.description}</p>
-      <div class="todo-details">
-        <span class="due-date">
+
+      <div class="todo-meta">
+        <div class="meta-item">
           <span class="material-icons">event</span>
-          {todo.due_date}
-        </span>
-        <span class="status {todo.status}">
+          {#if isEditing}
+            <input type="date" bind:value={editedTodo.due_date} />
+          {:else}
+            <span>{todo.due_date}</span>
+          {/if}
+        </div>
+
+        <div class="meta-item">
           <span class="material-icons">
             {todo.status === "completed" ? "check_circle" : "pending_actions"}
           </span>
-          {getStatusText(todo.status)}
-        </span>
+          {#if isEditing}
+            <select bind:value={editedTodo.status}>
+              <option value="pending">Pending</option>
+              <option value="in_progress">In Progress</option>
+              <option value="completed">Completed</option>
+            </select>
+          {:else}
+            <span class="status {todo.status}"
+              >{getStatusText(todo.status)}</span
+            >
+          {/if}
+        </div>
       </div>
-    {/if}
-  </div>
+
+      <div class="assignees-section">
+        <h4>Assignees</h4>
+        {#if isEditing}
+          <div class="assignee-input">
+            <select bind:value={newAssignee}>
+              <option value="">Select user</option>
+              {#each allUsers as user}
+                {#if !editedTodo.assignees.some((assignee) => assignee.id === user.id)}
+                  <option value={user.id}>{user.username}</option>
+                {/if}
+              {/each}
+            </select>
+            <button class="btn add-btn" on:click={addAssignee}>Add</button>
+          </div>
+        {/if}
+        <div class="assignees-list">
+          {#if editedTodo.assignees && editedTodo.assignees.length > 0}
+            {#each editedTodo.assignees as assignee}
+              <div class="assignee-item">
+                <div
+                  class="user-bubble"
+                  style="background-color: {assignee.color || '#ccc'};"
+                  title={assignee.username}
+                >
+                  {getInitials(assignee.username)}
+                </div>
+                <span>{assignee.username}</span>
+                {#if isEditing}
+                  <button
+                    class="btn remove-btn"
+                    on:click={() => removeAssignee(assignee.id)}
+                  >
+                    <span class="material-icons">close</span>
+                  </button>
+                {/if}
+              </div>
+            {/each}
+          {:else}
+            <p>No assignees</p>
+          {/if}
+        </div>
+      </div>
+    </div>
+  {/if}
 </div>
 
-{#if isExpanded}
-  <TaskExpandedView {todo} onClose={toggleExpanded} onUpdate={handleUpdate} />
-{/if}
-
 <style>
-  @font-face {
-    font-family: "Material Icons";
-    font-style: normal;
-    font-weight: 400;
-    src: url(https://fonts.gstatic.com/s/materialicons/v142/flUhRq6tzZclQEJ-Vdg-IuiaDsNcIhQ8tQ.woff2)
-      format("woff2");
-  }
-
-  .material-icons {
-    font-family: "Material Icons";
-    font-weight: normal;
-    font-style: normal;
-    font-size: 24px;
-    display: inline-block;
-    line-height: 1;
-    text-transform: none;
-    letter-spacing: normal;
-    word-wrap: normal;
-    white-space: nowrap;
-    direction: ltr;
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
-    -moz-osx-font-smoothing: grayscale;
-    font-feature-settings: "liga";
-  }
-
-  .nav-button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #7b68ee;
-    font-size: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    transition: background-color 0.3s;
-  }
-
-  .nav-button:hover {
-    background-color: #f0f0f0;
-  }
+  @import url("https://fonts.googleapis.com/icon?family=Material+Icons");
 
   .todo-item {
-    display: flex;
-    align-items: flex-start;
     background-color: #ffffff;
-    border: 1px solid #e8ecee;
     border-radius: 8px;
-    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     margin-bottom: 1rem;
-    transition: box-shadow 0.3s ease;
+    transition: all 0.3s ease;
+    overflow: hidden;
   }
 
   .todo-item:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   }
 
-  .todo-checkbox {
-    margin-right: 1rem;
-  }
-
-  .todo-checkbox input[type="checkbox"] {
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-  }
-
-  .todo-content {
-    flex-grow: 1;
+  .todo-item.completed {
+    opacity: 0.7;
   }
 
   .todo-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.5rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .todo-title {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .todo-title input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
   }
 
   h3 {
     margin: 0;
     font-size: 1.1rem;
     font-weight: 500;
-    color: #2c3e50;
+    color: #343a40;
   }
 
   h3.completed {
     text-decoration: line-through;
-    color: #7f8c8d;
-  }
-
-  .todo-description {
-    margin: 0 0 0.5rem 0;
-    color: #34495e;
-    font-size: 0.9rem;
-  }
-
-  .todo-details {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.8rem;
-    color: #7f8c8d;
-  }
-
-  .todo-details span {
-    display: flex;
-    align-items: center;
-  }
-
-  .todo-details .material-icons {
-    font-size: 1rem;
-    margin-right: 0.25rem;
-  }
-
-  .status {
-    text-transform: capitalize;
-  }
-
-  .status.completed {
-    color: #27ae60;
-  }
-
-  .status.pending {
-    color: #e67e22;
-  }
-
-  .status.in_progress {
-    color: #3498db;
+    color: #6c757d;
   }
 
   .todo-actions {
@@ -283,47 +297,131 @@
     gap: 0.5rem;
   }
 
-  button {
+  .btn {
     background: none;
     border: none;
     cursor: pointer;
     padding: 0.25rem;
     border-radius: 4px;
     transition: background-color 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  button:hover {
-    background-color: #f1f3f5;
-  }
-
-  .edit-btn,
-  .delete-btn {
-    color: #7f8c8d;
+  .btn:hover {
+    background-color: #e9ecef;
   }
 
   .save-btn,
   .cancel-btn {
     padding: 0.5rem 1rem;
-    border-radius: 4px;
     font-weight: 500;
   }
 
   .save-btn {
-    background-color: #7b68ee;
+    background-color: #007bff;
     color: white;
   }
 
   .save-btn:hover {
-    background-color: #6c5ce7;
+    background-color: #0056b3;
   }
 
   .cancel-btn {
-    background-color: #e8ecee;
-    color: #2c3e50;
+    background-color: #6c757d;
+    color: white;
   }
 
   .cancel-btn:hover {
-    background-color: #d1d8e0;
+    background-color: #545b62;
+  }
+
+  .todo-details {
+    padding: 1rem;
+  }
+
+  .todo-description {
+    margin-bottom: 1rem;
+  }
+
+  .todo-description p {
+    margin: 0;
+    color: #495057;
+  }
+
+  .todo-meta {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #6c757d;
+  }
+
+  .status {
+    text-transform: capitalize;
+  }
+
+  .status.completed {
+    color: #28a745;
+  }
+  .status.pending {
+    color: #ffc107;
+  }
+  .status.in_progress {
+    color: #17a2b8;
+  }
+
+  .assignees-section {
+    margin-top: 1rem;
+  }
+
+  .assignees-section h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    color: #343a40;
+  }
+
+  .assignee-input {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .assignee-input select {
+    flex-grow: 1;
+  }
+
+  .assignees-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .assignee-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #e9ecef;
+    padding: 0.25rem 0.5rem;
+    border-radius: 16px;
+  }
+
+  .user-bubble {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    color: white;
+    font-weight: bold;
   }
 
   input[type="text"],
@@ -332,17 +430,12 @@
   textarea {
     width: 100%;
     padding: 0.5rem;
-    margin-bottom: 0.5rem;
-    border: 1px solid #e8ecee;
+    border: 1px solid #ced4da;
     border-radius: 4px;
     font-size: 0.9rem;
   }
 
   textarea {
     resize: vertical;
-  }
-
-  .expand-btn {
-    color: #7f8c8d;
   }
 </style>

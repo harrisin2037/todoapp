@@ -28,7 +28,7 @@ func TestCreateTodo(t *testing.T) {
 		Description: "This is a test todo",
 	}
 
-	err = todoService.CreateTodo(todo)
+	err = todoService.CreateTodo(todo, []uint{})
 	if err != nil {
 		t.Fatalf("Failed to create todo: %v", err)
 	}

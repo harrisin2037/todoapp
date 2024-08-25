@@ -16,37 +16,32 @@ import (
 )
 
 type TodoHandler struct {
-	hub     *websocket.Hub
-	service *service.TodoService
+	hub         *websocket.Hub
+	userService *service.UserService
+	service     *service.TodoService
 }
 
-func NewTodoHandler(service *service.TodoService, hub *websocket.Hub) *TodoHandler {
-	return &TodoHandler{service: service, hub: hub}
-}
-
-type TodoCreateRequest struct {
-	Name        string  `json:"name" binding:"required"`
-	Description string  `json:"description"`
-	DueDate     *string `json:"due_date"`
-	Status      string  `json:"status" binding:"omitempty,oneof=pending in_progress completed"`
-}
-
-type TodoUpdateRequest struct {
-	Name        string  `json:"name" binding:"omitempty"`
-	Description string  `json:"description"`
-	DueDate     *string `json:"due_date"`
-	Status      string  `json:"status" binding:"omitempty,oneof=pending in_progress completed"`
-}
-
-type TodoResponse struct {
-	ID          uint       `json:"id"`
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	DueDate     *time.Time `json:"due_date"`
-	Status      string     `json:"status"`
+func NewTodoHandler(service *service.TodoService, userService *service.UserService, hub *websocket.Hub) *TodoHandler {
+	return &TodoHandler{
+		service:     service,
+		userService: userService,
+		hub:         hub,
+	}
 }
 
 func (h *TodoHandler) CreateTodo(c *gin.Context) {
+
+	userClaims, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	claims, ok := userClaims.(*models.Claims)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse user claims"})
+		return
+	}
 
 	var req TodoCreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -64,23 +59,36 @@ func (h *TodoHandler) CreateTodo(c *gin.Context) {
 		dueDate = &parsedTime
 	}
 
-	// if dueDate != nil && dueDate.Before(time.Now()) {
-	// 	c.JSON(http.StatusBadRequest, gin.H{"error": "Due date must be in the future"})
-	// 	return
-	// }
+	owner, err := h.userService.GetUserByID(claims.UserID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid owner ID"})
+		return
+	}
+
+	assignees := []models.User{}
+	if len(req.AssigneeIDs) > 0 {
+		assignees, err = h.userService.GetUsersByIDs(req.AssigneeIDs)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid assignee ID"})
+			return
+		}
+	}
 
 	todo := &models.Todo{
 		Name:        req.Name,
 		Description: req.Description,
 		DueDate:     dueDate,
 		Status:      req.Status,
+		OwnerID:     owner.ID,
+		Owner:       *owner,
+		Assignees:   assignees,
 	}
 
 	if todo.Status == "" {
 		todo.Status = "pending"
 	}
 
-	if err := h.service.CreateTodo(todo); err != nil {
+	if err := h.service.CreateTodo(todo, req.AssigneeIDs); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -93,17 +101,33 @@ func (h *TodoHandler) CreateTodo(c *gin.Context) {
 		Description: todo.Description,
 		DueDate:     todo.DueDate,
 		Status:      todo.Status,
+		OwnerID:     todo.OwnerID,
+		Owner:       NewUserResponse(todo.Owner),
+		Assignees:   NewUsersResponse(todo.Assignees),
 	}
 
 	c.JSON(http.StatusCreated, response)
 }
 
 func (h *TodoHandler) GetTodos(c *gin.Context) {
+
 	var (
 		statusQuery = c.Query("status")
 		sortBy      = c.Query("sort_by")
 		order       = c.Query("order")
 	)
+
+	claims, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not regconized"})
+		return
+	}
+
+	user, ok := claims.(*models.Claims)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse user claims"})
+		return
+	}
 
 	statuses := []string{}
 	if statusQuery != "" {
@@ -125,13 +149,22 @@ func (h *TodoHandler) GetTodos(c *gin.Context) {
 		return
 	}
 
-	todos, err := h.service.GetTodos(statuses, sortBy, order)
+	var (
+		err      error
+		response = []TodoResponse{}
+		todos    = []models.Todo{}
+	)
+
+	if user.Role == "admin" {
+		todos, err = h.service.GetTodosByAdmin(statuses, sortBy, order)
+	} else {
+		todos, err = h.service.GetTodos(statuses, sortBy, order, user.UserID)
+	}
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	response := []TodoResponse{}
 
 	for _, todo := range todos {
 		response = append(response, TodoResponse{
@@ -140,6 +173,9 @@ func (h *TodoHandler) GetTodos(c *gin.Context) {
 			Description: todo.Description,
 			DueDate:     todo.DueDate,
 			Status:      todo.Status,
+			OwnerID:     todo.OwnerID,
+			Owner:       NewUserResponse(todo.Owner),
+			Assignees:   NewUsersResponse(todo.Assignees),
 		})
 	}
 
@@ -153,7 +189,7 @@ func (h *TodoHandler) GetTodo(c *gin.Context) {
 		return
 	}
 
-	todo, err := h.service.GetTodo(int64(id))
+	todo, err := h.service.GetTodo(uint(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Todo not found"})
 		return
@@ -165,12 +201,35 @@ func (h *TodoHandler) GetTodo(c *gin.Context) {
 		Description: todo.Description,
 		DueDate:     todo.DueDate,
 		Status:      todo.Status,
+		OwnerID:     todo.OwnerID,
+		Owner:       NewUserResponse(todo.Owner),
+		Assignees:   NewUsersResponse(todo.Assignees),
 	}
 
 	c.JSON(http.StatusOK, response)
 }
 
 func (h *TodoHandler) UpdateTodo(c *gin.Context) {
+
+	userClaims, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not regconized"})
+		return
+	}
+
+	claims, ok := userClaims.(*models.Claims)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse user claims"})
+		return
+	}
+
+	userId := claims.UserID
+	user, err := h.userService.GetUserByID(userId)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
@@ -183,9 +242,14 @@ func (h *TodoHandler) UpdateTodo(c *gin.Context) {
 		return
 	}
 
-	todo, err := h.service.GetTodo(int64(id))
+	todo, err := h.service.GetTodo(uint(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Todo not found"})
+		return
+	}
+
+	if todo.OwnerID != userId && user.Role != "admin" && !models.AssigneesContainsUser(todo.Assignees, *user) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to update this todo"})
 		return
 	}
 
@@ -201,14 +265,40 @@ func (h *TodoHandler) UpdateTodo(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format"})
 			return
 		}
-		// if parsedTime.Before(time.Now()) {
-		// 	c.JSON(http.StatusBadRequest, gin.H{"error": "Due date must be in the future"})
-		// 	return
-		// }
 		todo.DueDate = &parsedTime
 	}
 	if req.Status != "" {
 		todo.Status = req.Status
+	}
+	if req.OwnerID != nil && *req.OwnerID == 0 && todo.OwnerID == 0 && user.Role == "admin" {
+		err := h.service.ChangeOwner(todo.ID, user.ID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "admin change owner error"})
+			return
+		}
+	}
+	if req.OwnerID != nil {
+		if user.Role != "admin" && todo.OwnerID != userId {
+			c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to update the owner of this todo"})
+			return
+		}
+		if *req.OwnerID > 0 {
+			newOwner, err := h.userService.GetUserByID(*req.OwnerID)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid new owner ID"})
+				return
+			}
+			todo.Owner = *newOwner
+			todo.OwnerID = *req.OwnerID
+		}
+	}
+	if len(req.AssigneeIDs) > 0 {
+		assignees, err := h.userService.GetUsersByIDs(req.AssigneeIDs)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid assignee ID"})
+			return
+		}
+		todo.Assignees = assignees
 	}
 
 	if err := h.service.UpdateTodo(todo); err != nil {
@@ -224,19 +314,23 @@ func (h *TodoHandler) UpdateTodo(c *gin.Context) {
 		Description: todo.Description,
 		DueDate:     todo.DueDate,
 		Status:      todo.Status,
+		OwnerID:     todo.OwnerID,
+		Owner:       NewUserResponse(todo.Owner),
+		Assignees:   NewUsersResponse(todo.Assignees),
 	}
 
 	c.JSON(http.StatusOK, response)
 }
 
 func (h *TodoHandler) DeleteTodo(c *gin.Context) {
+
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
 		return
 	}
 
-	if err := h.service.DeleteTodo(int64(id)); err != nil {
+	if err := h.service.DeleteTodo(uint(id)); err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Todo not found"})
 		} else {

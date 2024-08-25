@@ -14,4 +14,7 @@ type Todo struct {
 	Status      string     `json:"status" gorm:"default:'pending'"`
 	Priority    string     `json:"priority"`
 	Tags        string     `json:"tags"`
+	OwnerID     uint       `json:"owner_id"`
+	Owner       User       `json:"owner" gorm:"foreignKey:OwnerID"`
+	Assignees   []User     `json:"assignees" gorm:"many2many:todo_assignees;"`
 }

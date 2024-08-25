@@ -10,6 +10,7 @@
   import Auth from "./components/Auth.svelte";
   import UserManagement from "./components/UserManagement.svelte";
   import { API_BASE_URL } from "./config";
+  import { userStore } from "./userStore";
 
   let isMobile;
   let activeView = "tasks";
@@ -49,6 +50,8 @@
     socket.addEventListener("error", (error) => {
       console.error("WebSocket error:", error);
     });
+
+    await userStore.loadUsers();
   });
 
   onDestroy(() => {
@@ -176,7 +179,7 @@
       <Header on:logout={handleLogout} {onlineUsers} />
 
       {#if activeView === "tasks"}
-        <TaskList {todos} {fetchTodos} />
+        <TaskList {todos} {fetchTodos} allUsers={$userStore} />
       {:else if activeView === "calendar"}
         <Calendar {todos} />
       {:else if activeView === "users" && isAdmin}
@@ -259,7 +262,7 @@
   @keyframes loadingAnimation {
     0% {
       opacity: 1;
-      color: #66e477;
+      color: #a59eab;
     }
     50% {
       opacity: 0.5;

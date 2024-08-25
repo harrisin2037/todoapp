@@ -15,24 +15,13 @@ type UserHandler struct {
 	userService *service.UserService
 }
 
-type UserResponse struct {
-	ID       uint   `json:"id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Role     string `json:"role"`
-}
-
 func NewUserHandler(userService *service.UserService) *UserHandler {
 	return &UserHandler{userService: userService}
 }
 
 func (h *UserHandler) Register(c *gin.Context) {
 
-	var req struct {
-		Username string `json:"username" binding:"required"`
-		Email    string `json:"email" binding:"required,email"`
-		Password string `json:"password" binding:"required,min=6"`
-	}
+	var req UserRegisterRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -50,10 +39,7 @@ func (h *UserHandler) Register(c *gin.Context) {
 
 func (h *UserHandler) Login(c *gin.Context) {
 
-	var req struct {
-		Username string `json:"username" binding:"required"`
-		Password string `json:"password" binding:"required"`
-	}
+	var req UserLoginRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -86,7 +72,7 @@ func (h *UserHandler) CheckRoles(c *gin.Context) {
 		return
 	}
 
-	claims, ok := userClaims.(*utils.Claims)
+	claims, ok := userClaims.(*models.Claims)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse user claims"})
 		return
@@ -97,10 +83,7 @@ func (h *UserHandler) CheckRoles(c *gin.Context) {
 
 func (h *UserHandler) ChangeRole(c *gin.Context) {
 
-	var req struct {
-		UserID  uint        `json:"user_id" binding:"required,min=1,numeric"`
-		NewRole models.Role `json:"new_role" binding:"required,oneof=user admin"`
-	}
+	var req UserChangeRoleRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -113,7 +96,7 @@ func (h *UserHandler) ChangeRole(c *gin.Context) {
 		return
 	}
 
-	claims, ok := userClaims.(*utils.Claims)
+	claims, ok := userClaims.(*models.Claims)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse user claims"})
 		return
@@ -129,7 +112,9 @@ func (h *UserHandler) ChangeRole(c *gin.Context) {
 		return
 	}
 
-	err := h.userService.ChangeRole(int64(req.UserID), req.NewRole)
+	newRole := models.Role(req.NewRole)
+
+	err := h.userService.ChangeRole(req.UserID, newRole)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -146,7 +131,7 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 		return
 	}
 
-	user, err := h.userService.GetUserByID(int64(userID))
+	user, err := h.userService.GetUserByID(userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -200,19 +185,14 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	var req struct {
-		Username string `json:"username"`
-		Email    string `json:"email" binding:"omitempty,email"`
-		Password string `json:"password" binding:"omitempty,min=6"`
-		Role     string `json:"role" binding:"omitempty,oneof=user admin"`
-	}
+	var req UserUpdateRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err = h.userService.UpdateUser(int64(userID), req.Username, req.Email, req.Password, req.Role)
+	err = h.userService.UpdateUser(userID, req.Username, req.Email, req.Password, req.Role)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -236,7 +216,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	claims, ok := userClaims.(*utils.Claims)
+	claims, ok := userClaims.(*models.Claims)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse user claims"})
 		return
@@ -247,7 +227,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	err = h.userService.DeleteUser(int64(userID))
+	err = h.userService.DeleteUser(userID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -258,19 +238,16 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 
 func (h *UserHandler) CreateUser(c *gin.Context) {
 
-	var req struct {
-		Username string      `json:"username" binding:"required"`
-		Email    string      `json:"email" binding:"required,email"`
-		Password string      `json:"password" binding:"required,min=6"`
-		Role     models.Role `json:"role" binding:"required,oneof=user admin"`
-	}
+	var req UserCreateRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err := h.userService.CreateUser(req.Username, req.Email, req.Password, req.Role)
+	newRole := models.Role(req.Role)
+
+	err := h.userService.CreateUser(req.Username, req.Email, req.Password, newRole)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
