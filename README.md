@@ -8,6 +8,12 @@ A simple Backend Todo application built with Go, using Gin and GORM. Frontend wi
 - MySQL database
 - Dockerized deployment
 - Github CI
+- Calendar view
+- Todo list sorting, filtering, search
+- User management by admin
+- Assignee of task
+- Websocket notification on task updates
+
 
 ## Quick Start
 
