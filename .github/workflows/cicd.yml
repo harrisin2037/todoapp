@@ -74,19 +74,17 @@ jobs:
       - name: Install sshpass
         run: sudo apt-get install sshpass
 
-      - name: Copy docker-compose.deploy.yml to server
+      - name: Copy files to server
         env:
           HOST: ${{ secrets.SERVER_HOST }}
           USER: ${{ secrets.SERVER_USER }}
           PASSWORD: ${{ secrets.SERVER_PASSWORD }}
         run: |
-          sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no docker-compose.deploy.yml ${USER}@${HOST}:~/docker-compose.deploy.yml
+          sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no docker-compose.deploy.yml ${USER}@${HOST}:~/docker-compose.yml
+          sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no nginx.conf ${USER}@${HOST}:~/nginx.conf
 
-      - name: Deploy to server
+      - name: Create .env file
         env:
-          HOST: ${{ secrets.SERVER_HOST }}
-          USER: ${{ secrets.SERVER_USER }}
-          PASSWORD: ${{ secrets.SERVER_PASSWORD }}
           DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASS: ${{ secrets.DB_PASS }}
@@ -95,18 +93,32 @@ jobs:
           FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
         run: |
-          sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no ${USER}@${HOST} '
-            export DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD}"
-            export DB_USER="${DB_USER}"
-            export DB_PASS="${DB_PASS}"
-            export DB_NAME="${DB_NAME}"
-            export JWT_KEY="${JWT_KEY}"
-            export FRONTEND_URL="${FRONTEND_URL}"
-            export API_BASE_URL="${API_BASE_URL}"
+          echo "DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}" > .env
+          echo "DB_USER=${DB_USER}" >> .env
+          echo "DB_PASS=${DB_PASS}" >> .env
+          echo "DB_NAME=${DB_NAME}" >> .env
+          echo "JWT_KEY=${JWT_KEY}" >> .env
+          echo "FRONTEND_URL=${FRONTEND_URL}" >> .env
+          echo "API_BASE_URL=${API_BASE_URL}" >> .env
 
-            docker compose down
-            docker compose pull
-            docker compose up -d
+      - name: Copy .env file to server
+        env:
+          HOST: ${{ secrets.SERVER_HOST }}
+          USER: ${{ secrets.SERVER_USER }}
+          PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+        run: |
+          sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no .env ${USER}@${HOST}:~/.env
+
+      - name: Deploy to server
+        env:
+          HOST: ${{ secrets.SERVER_HOST }}
+          USER: ${{ secrets.SERVER_USER }}
+          PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+        run: |
+          sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no ${USER}@${HOST} '
+            docker-compose down
+            docker-compose pull
+            docker-compose --env-file .env up -d
 
             docker image prune -af
           '
