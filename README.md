@@ -44,6 +44,11 @@ JWT_KEY=key
 
 To Start
 ```
+cd frontend
+npm install
+npm install -g rollup
+npm run build
+
 docker-compose up
 
 ```
