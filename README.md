@@ -2,6 +2,10 @@
 
 A simple Backend Todo application built with Go, using Gin and GORM. Frontend with Svelte.
 
+Testing site: http://103-195-4-64.cloud-xip.com/
+
+Websocket is not working now (no tls)
+
 ## Features
 
 - CRUD for Todo items
