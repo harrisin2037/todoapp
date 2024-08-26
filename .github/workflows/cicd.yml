@@ -74,13 +74,13 @@ jobs:
       - name: Install sshpass
         run: sudo apt-get install sshpass
 
-      - name: Copy docker-compose.yml to server
+      - name: Copy docker-compose.deploy.yml to server
         env:
           HOST: ${{ secrets.SERVER_HOST }}
           USER: ${{ secrets.SERVER_USER }}
           PASSWORD: ${{ secrets.SERVER_PASSWORD }}
         run: |
-          sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no docker-compose.yml ${USER}@${HOST}:~/docker-compose.yml
+          sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no docker-compose.deploy.yml ${USER}@${HOST}:~/docker-compose.deploy.yml
 
       - name: Deploy to server
         env:
