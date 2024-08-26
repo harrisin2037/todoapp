@@ -52,7 +52,6 @@
 
     ws.onclose = () => {
       console.log("WebSocket connection closed");
-      // Attempt to reconnect after a delay
       setTimeout(initializeWebSocket, 5000);
     };
   }
