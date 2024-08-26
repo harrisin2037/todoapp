@@ -69,6 +69,14 @@ docker-compose down -v
 
 ```
 
+## Admin Account
+
+Hardcoded admin account create automatically
+```
+username: admin
+password: admin123
+```
+
 ## API Endpoints
 
 API available at `http://localhost:8080`
