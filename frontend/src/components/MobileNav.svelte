@@ -1,7 +1,9 @@
 <script>
   import { onMount } from "svelte";
+
   export let setActiveView;
   export let activeView;
+  export let isAdmin;
 
   let isNarrow = false;
   let navBar;
@@ -9,7 +11,7 @@
   const views = [
     { name: "Tasks", icon: "task_alt" },
     { name: "Calendar", icon: "calendar_today" },
-    { name: "Users", icon: "people" },
+    ...(isAdmin ? [{ name: "Users", icon: "people" }] : []),
   ];
 
   function toggleNavbar() {

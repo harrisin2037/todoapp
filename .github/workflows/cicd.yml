@@ -1,0 +1,112 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      matrix:
+        go-version: [1.21, 1.22]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Build backend
+        run: |
+          cd backend
+          go mod download
+          go build -v ./...
+
+      - name: Test backend
+        run: |
+          cd backend
+          go test -v ./...
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+      - name: Test frontend
+        run: |
+          cd frontend
+          npm test
+
+      - name: Build and push Docker images
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+          docker build -t harrisin2037/todoapp-backend:latest -f backend/Dockerfile ./backend
+          docker push harrisin2037/todoapp-backend:latest
+          docker build -t harrisin2037/todoapp-frontend:latest -f frontend/Dockerfile ./frontend
+          docker push harrisin2037/todoapp-frontend:latest
+
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install sshpass
+        run: sudo apt-get install sshpass
+
+      - name: Copy docker-compose.yml to server
+        env:
+          HOST: ${{ secrets.SERVER_HOST }}
+          USER: ${{ secrets.SERVER_USER }}
+          PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+        run: |
+          sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no docker-compose.yml ${USER}@${HOST}:~/docker-compose.yml
+
+      - name: Deploy to server
+        env:
+          HOST: ${{ secrets.SERVER_HOST }}
+          USER: ${{ secrets.SERVER_USER }}
+          PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+          DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          JWT_KEY: ${{ secrets.JWT_KEY }}
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+        run: |
+          sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no ${USER}@${HOST} '
+            export DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD}"
+            export DB_USER="${DB_USER}"
+            export DB_PASS="${DB_PASS}"
+            export DB_NAME="${DB_NAME}"
+            export JWT_KEY="${JWT_KEY}"
+            export FRONTEND_URL="${FRONTEND_URL}"
+            export API_BASE_URL="${API_BASE_URL}"
+
+            docker-compose down
+            docker-compose pull
+            docker-compose up -d
+
+            docker image prune -af
+          '

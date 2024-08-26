@@ -8,6 +8,7 @@ import css from 'rollup-plugin-css-only';
 import replace from '@rollup/plugin-replace';
 
 const production = !process.env.ROLLUP_WATCH;
+const apiBaseUrl = process.env.API_BASE_URL;
 
 function serve() {
 	let server;
@@ -40,7 +41,8 @@ export default {
 	},
 	plugins: [
 		replace({
-			'process.env.API_BASE_URL': JSON.stringify(process.env.API_BASE_URL)
+			'import.meta.env.VITE_API_BASE_URL': JSON.stringify(process.env.API_BASE_URL),
+			preventAssignment: true
 		}),
 		svelte({
 			compilerOptions: {
