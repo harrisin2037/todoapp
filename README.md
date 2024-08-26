@@ -59,10 +59,6 @@ docker-compose up
 
 ```
 
-Default the backend will crate an admin account now:
-username: admin
-password: admin123
-
 To Stop
 ```
 docker-compose down -v
@@ -71,7 +67,7 @@ docker-compose down -v
 
 ## Admin Account
 
-Hardcoded admin account create automatically
+Default the backend will crate an admin account now automatically
 ```
 username: admin
 password: admin123
