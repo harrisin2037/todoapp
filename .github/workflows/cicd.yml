@@ -104,9 +104,9 @@ jobs:
             export FRONTEND_URL="${FRONTEND_URL}"
             export API_BASE_URL="${API_BASE_URL}"
 
-            docker-compose down
-            docker-compose pull
-            docker-compose up -d
+            docker compose down
+            docker compose pull
+            docker compose up -d
 
             docker image prune -af
           '
