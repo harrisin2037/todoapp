@@ -116,9 +116,9 @@ jobs:
           PASSWORD: ${{ secrets.SERVER_PASSWORD }}
         run: |
           sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no ${USER}@${HOST} '
-            docker-compose down
-            docker-compose pull
-            docker-compose --env-file .env up -d
+            docker compose down
+            docker compose pull
+            docker compose --env-file .env up -d
 
             docker image prune -af
           '
