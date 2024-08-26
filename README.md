@@ -53,6 +53,10 @@ docker-compose up
 
 ```
 
+Default the backend will crate an admin account now:
+username: admin
+password: admin123
+
 To Stop
 ```
 docker-compose down -v
