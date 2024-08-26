@@ -94,6 +94,7 @@ jobs:
           JWT_KEY: ${{ secrets.JWT_KEY }}
           FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          VITE_API_BASE_URL: ${{ secrets.API_BASE_URL }}
         run: |
           echo "DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}" > .env
           echo "DB_USER=${DB_USER}" >> .env
@@ -102,6 +103,7 @@ jobs:
           echo "JWT_KEY=${JWT_KEY}" >> .env
           echo "FRONTEND_URL=${FRONTEND_URL}" >> .env
           echo "API_BASE_URL=${API_BASE_URL}" >> .env
+          echo "VITE_API_BASE_URL=${VITE_API_BASE_URL}" >> .env
 
       - name: Copy .env file to server
         env:
