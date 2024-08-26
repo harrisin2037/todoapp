@@ -1,9 +1,11 @@
 <script>
   import { fade } from "svelte/transition";
   import { onMount } from "svelte";
+  import { API_BASE_URL } from "../config";
 
   let notifications = [];
   let notificationId = 0;
+  let ws;
 
   function addNotification(data) {
     const id = notificationId++;
@@ -23,22 +25,44 @@
   }
 
   function handleWebSocketMessage(event) {
-    console.log("event", event);
-    const data = JSON.parse(event.data);
-    console.log("aaaaa", data);
-    if (data.message === "todo updated") {
-      addNotification(data);
+    console.log("Raw event data:", event.data);
+    try {
+      const data = JSON.parse(event.data);
+      console.log("Parsed data:", data);
+      if (data.message === "todo updated") {
+        addNotification(data);
+      }
+    } catch (error) {
+      console.error("Error parsing WebSocket message:", error);
     }
   }
 
+  function initializeWebSocket() {
+    ws = new WebSocket(`${API_BASE_URL.replace("http", "ws")}/ws`);
+
+    ws.onopen = () => {
+      console.log("WebSocket connection established");
+    };
+
+    ws.onmessage = handleWebSocketMessage;
+
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+
+    ws.onclose = () => {
+      console.log("WebSocket connection closed");
+      // Attempt to reconnect after a delay
+      setTimeout(initializeWebSocket, 5000);
+    };
+  }
+
   onMount(() => {
-    if (typeof ws !== "undefined") {
-      ws.addEventListener("message", handleWebSocketMessage);
-    }
+    initializeWebSocket();
 
     return () => {
-      if (typeof ws !== "undefined") {
-        ws.removeEventListener("message", handleWebSocketMessage);
+      if (ws) {
+        ws.close();
       }
     };
   });

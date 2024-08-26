@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -301,20 +302,20 @@ func (h *TodoHandler) UpdateTodo(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	h.hub.Broadcast <- []byte(`
-	{
-		"message": "todo updated",
-		"todo": {
-			"id": ` + strconv.Itoa(int(todo.ID)) + `,
-			"name": "` + todo.Name + `",
-			"description": "` + todo.Description + `",
-			"due_date": "` + todo.DueDate.Format(time.RFC3339) + `",
-			"status": "` + todo.Status + `",
-			"owner_id": ` + strconv.Itoa(int(todo.OwnerID)) + `
-		}
-	}
-	`)
+	h.hub.Broadcast <- []byte(
+		fmt.Sprintf(`
+		{
+			"message":"todo updated",
+			"todo":{
+				"id":%d,
+				"name":"%s",
+				"description":"%s",
+				"due_date":"%s",
+				"status":"%s",
+				"owner_id":%d
+			}
+		}`,
+			todo.ID, todo.Name, todo.Description, todo.DueDate.Format(time.RFC3339), todo.Status, todo.OwnerID))
 
 	response := TodoResponse{
 		ID:          todo.ID,
