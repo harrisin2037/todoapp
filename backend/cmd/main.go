@@ -104,11 +104,6 @@ func main() {
 		hub.HandleWebSocket(c)
 	})
 
-	// online status websocket
-	router.GET("/online", func(c *gin.Context) {
-		// hub.HandleOnlineStatus(c)
-	})
-
 	go func() {
 		hub.Broadcast <- []byte(`{"message": "Welcome to the chat room!"}`)
 	}()

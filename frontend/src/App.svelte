@@ -26,7 +26,7 @@
     await checkAuth();
     window.addEventListener("resize", checkMobile);
 
-    socket = new WebSocket(`${API_BASE_URL.replace("http", "ws")}/online`);
+    socket = new WebSocket(`${API_BASE_URL.replace("http", "ws")}/ws`);
 
     socket.addEventListener("open", () => {
       console.log("WebSocket connection opened");

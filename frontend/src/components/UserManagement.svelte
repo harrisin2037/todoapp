@@ -6,10 +6,14 @@
   let newUser = { username: "", email: "", password: "", role: "user" };
   let editingUser = null;
   let showModal = false;
+  let ws;
 
   $: currentUser = editingUser || newUser;
 
-  onMount(fetchUsers);
+  onMount(() => {
+    fetchUsers();
+    // setupWebSocket();
+  });
 
   async function fetchUsers() {
     const response = await fetch(`${API_BASE_URL}/admin/users`, {
@@ -25,6 +29,45 @@
       const errorData = await response.json();
       alert(`Error: ${errorData.error}`);
     }
+  }
+
+  function setupWebSocket() {
+    const wsUrl = `${API_BASE_URL.replace(/^http/, "ws")}/ws`;
+    console.log("Connecting to WebSocket:", wsUrl);
+
+    ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      console.log("WebSocket connection opened");
+    };
+
+    ws.onmessage = (event) => {
+      console.log("WebSocket message received:", event.data);
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "online_users") {
+          console.log("Updating online users:", data.users);
+          updateOnlineStatus(data.users);
+        }
+      } catch (error) {
+        console.error("Error parsing WebSocket message:", error);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+
+    ws.onclose = (event) => {
+      console.log("WebSocket connection closed:", event);
+    };
+  }
+
+  function updateOnlineStatus(onlineUsers) {
+    users = users.map((user) => ({
+      ...user,
+      online: onlineUsers.includes(user.id.toString()),
+    }));
   }
 
   async function addUser() {
@@ -112,6 +155,7 @@
       <tr>
         <th>Username</th>
         <th>Email</th>
+        <th>Online</th>
         <th>Role</th>
         <th>Actions</th>
       </tr>
@@ -119,10 +163,15 @@
     <tbody>
       {#each users as user (user.id)}
         <tr>
-          <td>{user.username}</td>
-          <td>{user.email}</td>
-          <td>{user.role}</td>
-          <td>
+          <td data-label="Username">{user.username}</td>
+          <td data-label="Email">{user.email}</td>
+          <td data-label="Online">
+            <span class="status-indicator {user.online ? 'online' : 'offline'}"
+            ></span>
+            {user.online ? "Online" : "Offline"}
+          </td>
+          <td data-label="Role">{user.role}</td>
+          <td data-label="Actions">
             <button class="edit-btn" on:click={() => openModal(user)}>
               <span class="material-icons">edit</span>
             </button>
@@ -143,6 +192,7 @@
           <label for="username">Username</label>
           <input
             type="text"
+            id="username"
             placeholder="Username"
             bind:value={currentUser.username}
             required
@@ -151,6 +201,7 @@
             <label for="password">Password</label>
             <input
               type="password"
+              id="password"
               placeholder="Password"
               bind:value={currentUser.password}
               required
@@ -159,11 +210,13 @@
           <label for="email">Email</label>
           <input
             type="email"
+            id="email"
             placeholder="Email"
             bind:value={currentUser.email}
             required
           />
-          <select bind:value={currentUser.role}>
+          <label for="role">Role</label>
+          <select id="role" bind:value={currentUser.role}>
             <option value="user">User</option>
             <option value="admin">Admin</option>
           </select>
@@ -265,6 +318,10 @@
     flex-direction: column;
   }
 
+  label {
+    margin-bottom: 0.5rem;
+  }
+
   input,
   select {
     margin-bottom: 1rem;
@@ -297,6 +354,22 @@
   .submit-btn {
     background-color: #7b68ee;
     color: white;
+  }
+
+  .status-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+  }
+
+  .status-indicator.online {
+    background-color: #4caf50;
+  }
+
+  .status-indicator.offline {
+    background-color: #f44336;
   }
 
   @media (max-width: 600px) {

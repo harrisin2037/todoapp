@@ -106,6 +106,12 @@ func (r *TodoRepository) Update(todo *models.Todo) error {
 			return err
 		}
 
+		unassignedTodo := &models.Todo{Model: gorm.Model{ID: todo.ID}}
+
+		if err := tx.Model(&unassignedTodo).Association("Assignees").Clear(); err != nil {
+			return err
+		}
+
 		if len(todo.Assignees) > 0 {
 			return tx.Model(todo).Association("Assignees").Append(todo.Assignees)
 		}

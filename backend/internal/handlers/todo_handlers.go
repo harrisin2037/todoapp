@@ -277,12 +277,8 @@ func (h *TodoHandler) UpdateTodo(c *gin.Context) {
 			return
 		}
 	}
-	if req.OwnerID != nil {
-		if user.Role != "admin" && todo.OwnerID != userId {
-			c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to update the owner of this todo"})
-			return
-		}
-		if *req.OwnerID > 0 {
+	if req.OwnerID != nil && *req.OwnerID > 0 {
+		if user.Role == "admin" {
 			newOwner, err := h.userService.GetUserByID(*req.OwnerID)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid new owner ID"})
@@ -306,7 +302,19 @@ func (h *TodoHandler) UpdateTodo(c *gin.Context) {
 		return
 	}
 
-	h.hub.Broadcast <- []byte(`{"message": "todo updated"}`)
+	h.hub.Broadcast <- []byte(`
+	{
+		"message": "todo updated",
+		"todo": {
+			"id": ` + strconv.Itoa(int(todo.ID)) + `,
+			"name": "` + todo.Name + `",
+			"description": "` + todo.Description + `",
+			"due_date": "` + todo.DueDate.Format(time.RFC3339) + `",
+			"status": "` + todo.Status + `",
+			"owner_id": ` + strconv.Itoa(int(todo.OwnerID)) + `
+		}
+	}
+	`)
 
 	response := TodoResponse{
 		ID:          todo.ID,

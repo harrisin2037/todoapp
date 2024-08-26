@@ -34,7 +34,10 @@
   }
 
   function startEditing() {
-    editedTodo = { ...todo, assignees: todo.assignees || [] };
+    editedTodo = {
+      ...todo,
+      assignees: Array.isArray(todo.assignees) ? [...todo.assignees] : [],
+    };
     isEditing = true;
   }
 
@@ -95,7 +98,9 @@
 
   function addAssignee() {
     if (newAssignee) {
-      const userToAdd = allUsers.find((user) => user.id === newAssignee);
+      const userToAdd = allUsers.find(
+        (user) => user.id === parseInt(newAssignee)
+      );
       if (
         userToAdd &&
         !editedTodo.assignees.some((user) => user.id === userToAdd.id)
@@ -193,6 +198,20 @@
         </div>
       </div>
 
+      <!-- <div class="assignees-section">
+        <h4>Owner</h4>
+        <div class="assignee-item">
+          <div
+            class="user-bubble"
+            style="background-color: {todo.owner.color || '#ccc'};"
+            title={todo.owner.username}
+          >
+            {getInitials(todo.owner.username)}
+          </div>
+          <span>{todo.owner.username}</span>
+        </div>
+      </div> -->
+
       <div class="assignees-section">
         <h4>Assignees</h4>
         {#if isEditing}
@@ -201,7 +220,7 @@
               <option value="">Select user</option>
               {#each allUsers as user}
                 {#if !editedTodo.assignees.some((assignee) => assignee.id === user.id)}
-                  <option value={user.id}>{user.username}</option>
+                  <option value={user.id.toString()}>{user.username}</option>
                 {/if}
               {/each}
             </select>
@@ -312,10 +331,16 @@
     background-color: #e9ecef;
   }
 
+  .add-btn,
   .save-btn,
   .cancel-btn {
     padding: 0.5rem 1rem;
     font-weight: 500;
+  }
+
+  .add-btn {
+    background-color: #007bff;
+    color: white;
   }
 
   .save-btn {
