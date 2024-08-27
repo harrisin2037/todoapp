@@ -18,7 +18,6 @@ Websocket is not working now (no tls)
 - Assignee of task
 - Websocket notification on task updates
 
-
 ## Quick Start
 
 ### Prerequisites
@@ -53,17 +52,19 @@ JWT_KEY=key
 3. Start/Stop the application using Docker Compose:
 
 To Start
+
 ```
 cd frontend
 npm install
 npm install -g rollup
 npm run build
 
-docker-compose up
+docker compose --env-file .env up
 
 ```
 
 To Stop
+
 ```
 docker-compose down -v
 
@@ -72,6 +73,7 @@ docker-compose down -v
 ## Admin Account
 
 Default the backend will crate an admin account now automatically
+
 ```
 username: admin
 password: admin123
