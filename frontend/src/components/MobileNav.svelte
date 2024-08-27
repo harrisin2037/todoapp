@@ -6,7 +6,8 @@
   export let isAdmin;
 
   let isNarrow = false;
-  let navBar;
+  let isMobile = false;
+  let windowWidth;
 
   const views = [
     { name: "Tasks", icon: "task_alt" },
@@ -15,32 +16,30 @@
   ];
 
   function toggleNavbar() {
-    isNarrow = !isNarrow;
-    navBar.style.width = isNarrow ? "60px" : "240px";
+    if (!isMobile) {
+      isNarrow = !isNarrow;
+    }
   }
 
+  $: isMobile = windowWidth <= 768;
+  $: if (isMobile) isNarrow = false;
+
   onMount(() => {
-    const resizeObserver = new ResizeObserver((entries) => {
-      for (let entry of entries) {
-        isNarrow = entry.contentRect.width < 200;
-      }
-    });
-
-    resizeObserver.observe(navBar);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
+    isNarrow = window.innerWidth < 1024 && window.innerWidth > 768;
   });
 </script>
 
-<nav class="nav-bar" class:narrow={isNarrow} bind:this={navBar}>
-  <div class="logo">
-    <span class="material-icons">menu</span>
-    {#if !isNarrow}
-      <span class="app-name">Todo App</span>
-    {/if}
-  </div>
+<svelte:window bind:innerWidth={windowWidth} />
+
+<nav class="nav-bar" class:narrow={isNarrow} class:mobile={isMobile}>
+  {#if !isMobile}
+    <div class="logo">
+      <span class="material-icons">menu</span>
+      {#if !isNarrow}
+        <span class="app-name">Todo App</span>
+      {/if}
+    </div>
+  {/if}
   <div class="nav-items">
     {#each views as view}
       <button
@@ -49,17 +48,19 @@
         title={view.name}
       >
         <span class="material-icons">{view.icon}</span>
-        {#if !isNarrow}
+        {#if !isNarrow || isMobile}
           <span class="button-text">{view.name}</span>
         {/if}
       </button>
     {/each}
   </div>
-  <button class="collapse-btn" on:click={toggleNavbar}>
-    <span class="material-icons"
-      >{isNarrow ? "chevron_right" : "chevron_left"}</span
-    >
-  </button>
+  {#if !isMobile}
+    <button class="collapse-btn" on:click={toggleNavbar}>
+      <span class="material-icons">
+        {isNarrow ? "chevron_right" : "chevron_left"}
+      </span>
+    </button>
+  {/if}
 </nav>
 
 <svelte:head>
@@ -173,7 +174,7 @@
   }
 
   @media (max-width: 768px) {
-    .nav-bar {
+    .nav-bar.mobile {
       position: fixed;
       bottom: 0;
       left: 0;
@@ -183,40 +184,43 @@
       flex-direction: row;
       justify-content: space-around;
       padding: 0.5rem;
+      z-index: 1000;
+      background-color: #f5f5f5;
+      border-top: 1px solid #e0e0e0;
     }
 
-    .logo {
+    .nav-bar.mobile .logo {
       display: none;
     }
 
-    .nav-items {
+    .nav-bar.mobile .nav-items {
       flex-direction: row;
       padding: 0;
       width: 100%;
     }
 
-    button {
+    .nav-bar.mobile button {
       flex-direction: column;
       align-items: center;
       padding: 0.5rem;
     }
 
-    .material-icons {
+    .nav-bar.mobile .material-icons {
       margin-right: 0;
       margin-bottom: 4px;
     }
 
-    .button-text {
+    .nav-bar.mobile .button-text {
       font-size: 12px;
     }
 
-    .collapse-btn {
+    .nav-bar.mobile .collapse-btn {
       display: none;
     }
   }
 
   @media (max-width: 360px) {
-    .button-text {
+    .nav-bar.mobile .button-text {
       display: none;
     }
   }
