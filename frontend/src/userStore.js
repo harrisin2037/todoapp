@@ -17,7 +17,12 @@ function createUserStore() {
                         Authorization: `Bearer ${localStorage.getItem("token")}`,
                     },
                 });
+                console.log('Response status:', response.status);
+                console.log('Response headers:', Object.fromEntries(response.headers));
+
                 const text = await response.text();
+                console.log('Raw response:', text);
+
                 if (response.ok) {
                     try {
                         const data = JSON.parse(text);
