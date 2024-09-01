@@ -41,7 +41,7 @@ export default {
 	},
 	plugins: [
 		replace({
-			'process.env.API_BASE_URL': JSON.stringify(process.env.API_BASE_URL),
+			'process.env.VITE_API_BASE_URL': JSON.stringify(process.env.VITE_API_BASE_URL),
 			preventAssignment: true
 		}),
 		svelte({

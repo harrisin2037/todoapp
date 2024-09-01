@@ -12,7 +12,7 @@ ARG VITE_API_BASE_URL
 
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
-RUN echo "VITE_API_BASE_URL=${VITE_API_BASE_URL}" > .env
+RUN echo "VITE_API_BASE_URL in Dockerfile: ${VITE_API_BASE_URL}"
 
 RUN npm run build
 
@@ -20,4 +20,4 @@ ENV HOST=0.0.0.0
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "VITE_API_BASE_URL=${VITE_API_BASE_URL} npm start"]
+CMD ["npm", "run", "start"]

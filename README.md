@@ -47,6 +47,9 @@ FRONTEND_URL=http://localhost:3000
 
 PORT=8080
 JWT_KEY=key
+
+API_BASE_URL=http://localhost/api
+VITE_API_BASE_URL=http://localhost/api
 ```
 
 3. Start/Stop the application using Docker Compose:
