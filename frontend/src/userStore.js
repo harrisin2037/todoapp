@@ -1,5 +1,4 @@
 import { writable } from 'svelte/store';
-import { API_BASE_URL } from './config';
 
 function createUserStore() {
     const { subscribe, set, update } = writable([]);
@@ -12,17 +11,27 @@ function createUserStore() {
         removeUser: (id) => update(users => users.filter(user => user.id !== id)),
         loadUsers: async () => {
             try {
-                const response = await fetch(`${API_BASE_URL}/users`, {
+                console.log('Fetching users from:', `${import.meta.env.VITE_API_BASE_URL}/users`);
+                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users`, {
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem("token")}`,
                     },
                 });
+                const text = await response.text();
                 if (response.ok) {
-                    const data = await response.json();
-                    console.log('Loaded users:', data.users);
-                    set(data.users);
+                    try {
+                        const data = JSON.parse(text);
+                        console.log('Parsed data:', data);
+                        if (Array.isArray(data.users)) {
+                            set(data.users);
+                        } else {
+                            console.error('Unexpected data structure:', data);
+                        }
+                    } catch (parseError) {
+                        console.error('Error parsing JSON:', parseError);
+                    }
                 } else {
-                    console.error('Failed to load users');
+                    console.error('Failed to load users. Status:', response.status);
                 }
             } catch (error) {
                 console.error('Error loading users:', error);
