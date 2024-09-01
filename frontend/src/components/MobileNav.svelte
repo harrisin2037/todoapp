@@ -12,6 +12,7 @@
   const views = [
     { name: "Tasks", icon: "task_alt" },
     { name: "Calendar", icon: "calendar_today" },
+    { name: "Templates", icon: "copy_all" },
     ...(isAdmin ? [{ name: "Users", icon: "people" }] : []),
   ];
 

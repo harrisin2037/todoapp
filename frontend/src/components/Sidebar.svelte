@@ -16,6 +16,7 @@
   $: navItems = [
     { id: "tasks", label: "Tasks", icon: "task_alt" },
     { id: "calendar", label: "Calendar", icon: "calendar_today" },
+    { id: "templates", label: "Templates", icon: "copy_all" },
     ...(isAdmin
       ? [{ id: "users", label: "User Management", icon: "people" }]
       : []),

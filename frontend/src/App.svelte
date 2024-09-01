@@ -9,6 +9,7 @@
   import MobileNav from "./components/MobileNav.svelte";
   import Auth from "./components/Auth.svelte";
   import UserManagement from "./components/UserManagement.svelte";
+  import TaskTemplateManager from "./components/TaskTemplateManager.svelte";
   import { API_BASE_URL } from "./config";
   import { userStore } from "./userStore";
 
@@ -184,6 +185,11 @@
         <Calendar {todos} />
       {:else if activeView === "users" && isAdmin}
         <UserManagement />
+      {:else if activeView === "templates"}
+        <TaskTemplateManager />
+      {:else}
+        <h1>404 - Not Found</h1>
+        <!-- need a component for the 404/400/500 -->
       {/if}
 
       <Notification />
@@ -250,7 +256,7 @@
   .loading {
     font-size: 38px;
     font-weight: bold;
-    color: #95b19d;
+    color: #b288c1;
     animation: loadingAnimation 1.5s infinite;
     position: absolute;
     top: 50%;
@@ -270,7 +276,7 @@
     }
     100% {
       opacity: 1;
-      color: #29e9b2;
+      color: #ccb8f5;
     }
   }
 </style>

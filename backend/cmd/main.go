@@ -34,7 +34,7 @@ func main() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	err = db.AutoMigrate(&models.Todo{}, &models.User{})
+	err = db.AutoMigrate(&models.Todo{}, &models.User{}, &models.TaskTemplate{})
 	if err != nil {
 		log.Fatalf("Failed to auto migrate: %v", err)
 	}
@@ -51,13 +51,16 @@ func main() {
 	go hub.Run()
 
 	var (
-		router      = gin.Default()
-		userRepo    = repository.NewUserRepository(db)
-		userService = service.NewUserService(userRepo)
-		todoRepo    = repository.NewTodoRepository(db)
-		todoService = service.NewTodoService(todoRepo)
-		userHandler = handlers.NewUserHandler(userService)
-		todoHandler = handlers.NewTodoHandler(todoService, userService, hub)
+		router              = gin.Default()
+		userRepo            = repository.NewUserRepository(db)
+		userService         = service.NewUserService(userRepo)
+		todoRepo            = repository.NewTodoRepository(db)
+		todoService         = service.NewTodoService(todoRepo)
+		taskTemplateRepo    = repository.NewTaskTemplateRepository(db)
+		taskTemplateService = service.NewTaskTemplateService(taskTemplateRepo)
+		userHandler         = handlers.NewUserHandler(userService)
+		todoHandler         = handlers.NewTodoHandler(todoService, userService, hub)
+		taskTemplateHandler = handlers.NewTaskTemplateHandler(taskTemplateService, userService, hub)
 	)
 
 	router.Use(cors.New(cors.Config{
@@ -82,7 +85,14 @@ func main() {
 		userRouter.PUT("/todos/:id", todoHandler.UpdateTodo)
 		userRouter.DELETE("/todos/:id", todoHandler.DeleteTodo)
 
-		router.GET("/users", userHandler.GetAllUsers)
+		userRouter.GET("/users", userHandler.GetAllUsers)
+
+		userRouter.GET("/task-templates", taskTemplateHandler.GetTaskTemplates)
+		userRouter.POST("/task-templates", taskTemplateHandler.CreateTaskTemplate)
+		userRouter.GET("/task-templates/:id", taskTemplateHandler.GetTaskTemplate)
+		userRouter.PUT("/task-templates/:id", taskTemplateHandler.UpdateTaskTemplate)
+		userRouter.DELETE("/task-templates/:id", taskTemplateHandler.DeleteTaskTemplate)
+		userRouter.GET("/task-templates/owner/:ownerID", taskTemplateHandler.GetTaskTemplatesByOwnerID)
 	}
 
 	adminRouter := router.Group("/admin")
