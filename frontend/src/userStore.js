@@ -11,8 +11,8 @@ function createUserStore() {
         removeUser: (id) => update(users => users.filter(user => user.id !== id)),
         loadUsers: async () => {
             try {
-                console.log('Fetching users from:', `${import.meta.env.VITE_API_BASE_URL}/users`);
-                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users`, {
+                console.log('Fetching users from:', `${import.meta.env.VITE_API_BASE_URL}/api/users`);
+                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users`, {
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem("token")}`,
                     },
