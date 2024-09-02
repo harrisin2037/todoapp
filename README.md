@@ -61,7 +61,7 @@ cd frontend
 npm install
 npm install -g rollup
 npm run build
-
+cd ..
 docker compose --env-file .env up
 
 ```
