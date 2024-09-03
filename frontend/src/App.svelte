@@ -170,7 +170,7 @@
   class={`${isMobile ? "mobile" : "desktop"} ${!isAuthenticated ? "auth" : ""}`}
 >
   {#if $isLoading}
-    <div class="loading">...</div>
+    <div class="loading">Playbook</div>
   {:else if isAuthenticated}
     {#if !isMobile}
       <Sidebar {setActiveView} {activeView} {isAdmin} />
